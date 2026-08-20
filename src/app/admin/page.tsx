@@ -646,16 +646,16 @@ export default function AdminPage() {
         {activeTab === "doctor" && (
           <div className="space-y-4">
             {/* Quick Action Toolbar for Dr. Shreya */}
-            <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md text-xs">
+            <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-sm text-xs">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-white">👨‍⚕️ Chairside Clinical Superpowers:</span>
+                <span className="font-bold text-[#1C1A17] dark:text-white">👨‍⚕️ Chairside Clinical Superpowers:</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsXRayModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 font-bold transition flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-xl bg-sky-600/15 hover:bg-sky-600/25 text-sky-700 dark:text-sky-300 border border-sky-500/40 font-bold transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <span>🩻 RVG X-Ray Caliper</span>
                 </button>
@@ -663,7 +663,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setIsConsentModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 font-bold transition flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-600/15 hover:bg-amber-600/25 text-amber-800 dark:text-amber-300 border border-amber-500/40 font-bold transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <FileCheck2 className="w-3.5 h-3.5" />
                   <span>✍️ Medico-Legal Consent Form</span>
@@ -672,7 +672,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("smile_studio")}
-                  className="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 font-bold transition flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-xl bg-purple-600/15 hover:bg-purple-600/25 text-purple-700 dark:text-purple-300 border border-purple-500/40 font-bold transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>✨ Smile Makeover Studio</span>
@@ -681,7 +681,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setIsRxModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold transition flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 font-bold transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <FileText className="w-3.5 h-3.5" />
                   <span>+ Issue E-Rx</span>
@@ -723,15 +723,15 @@ export default function AdminPage() {
         {/* ----------------- TAB 3: PATIENTS CRM DIRECTORY (NEW!) ----------------- */}
         {activeTab === "patients" && (
           <div className="space-y-4">
-            <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
               <div className="flex items-center gap-2 flex-1">
-                <Search className="w-4 h-4 text-slate-400" />
+                <Search className="w-4 h-4 text-[#7A7265] dark:text-slate-400" />
                 <input
                   type="text"
                   value={patientSearch}
                   onChange={(e) => setPatientSearch(e.target.value)}
                   placeholder="Search patient by name, phone, email, condition, or allergy..."
-                  className="bg-transparent border-none text-xs sm:text-sm text-white focus:outline-none w-full placeholder-slate-500"
+                  className="bg-transparent border-none text-xs sm:text-sm text-[#1C1A17] dark:text-white focus:outline-none w-full placeholder-slate-400 dark:placeholder-slate-500"
                 />
               </div>
 
@@ -740,43 +740,43 @@ export default function AdminPage() {
                   setSelectedPatientForEdit(null);
                   setIsPatientModalOpen(true);
                 }}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-1.5"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>+ Register Walk-In / Offline Patient</span>
               </button>
             </div>
 
-            <div className="bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+            <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 bg-slate-950/50">
-                      <th className="py-3 px-4">Patient Name &amp; Age</th>
-                      <th className="py-3 px-3">Contact Details</th>
-                      <th className="py-3 px-3">Blood Group</th>
-                      <th className="py-3 px-3">Origin Source</th>
-                      <th className="py-3 px-3">Medical History &amp; Alerts</th>
-                      <th className="py-3 px-3">Emergency Contact</th>
-                      <th className="py-3 px-4 text-right">Clinical Actions</th>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-[#7A7265] dark:text-slate-400 bg-slate-50 dark:bg-slate-950/50">
+                      <th className="py-3 px-4 font-bold">Patient Name &amp; Age</th>
+                      <th className="py-3 px-3 font-bold">Contact Details</th>
+                      <th className="py-3 px-3 font-bold">Blood Group</th>
+                      <th className="py-3 px-3 font-bold">Origin Source</th>
+                      <th className="py-3 px-3 font-bold">Medical History &amp; Alerts</th>
+                      <th className="py-3 px-3 font-bold">Emergency Contact</th>
+                      <th className="py-3 px-4 text-right font-bold">Clinical Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                     {filteredPatients.map((p) => {
                       const isCurrentActive = activePatient?.id === p.id;
                       return (
                         <tr
                           key={p.id}
-                          className={`hover:bg-slate-800/40 transition ${isCurrentActive ? "bg-amber-500/5" : ""}`}
+                          className={`hover:bg-slate-50 dark:hover:bg-slate-800/40 transition ${isCurrentActive ? "bg-amber-500/10" : ""}`}
                         >
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full bg-slate-800 border border-amber-500/30 text-amber-400 font-bold flex items-center justify-center text-xs">
+                              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold flex items-center justify-center text-xs">
                                 {p.name.charAt(0)}
                               </div>
                               <div>
-                                <span className="font-bold text-white block">{p.name}</span>
-                                <span className="text-[11px] text-slate-400">
+                                <span className="font-bold text-[#1C1A17] dark:text-white block">{p.name}</span>
+                                <span className="text-[11px] text-[#7A7265] dark:text-slate-400">
                                   {p.age ? `${p.age} yrs` : "Age N/A"} • {p.gender || "Male"}
                                 </span>
                               </div>
@@ -784,8 +784,8 @@ export default function AdminPage() {
                           </td>
 
                           <td className="py-3.5 px-3">
-                            <span className="font-mono text-slate-200 block">{p.phone}</span>
-                            <span className="text-[11px] text-slate-400">{p.email}</span>
+                            <span className="font-mono text-slate-800 dark:text-slate-200 block font-semibold">{p.phone}</span>
+                            <span className="text-[11px] text-[#7A7265] dark:text-slate-400">{p.email}</span>
                           </td>
 
                           <td className="py-3.5 px-3">
@@ -896,15 +896,15 @@ export default function AdminPage() {
         {activeTab === "appointments" && (
           <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
               <div className="flex items-center gap-2 flex-1">
-                <Search className="w-4 h-4 text-slate-400" />
+                <Search className="w-4 h-4 text-[#7A7265] dark:text-slate-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by patient name, phone, email, or ref ID..."
-                  className="bg-transparent border-none text-xs sm:text-sm text-white focus:outline-none w-full placeholder-slate-500"
+                  className="bg-transparent border-none text-xs sm:text-sm text-[#1C1A17] dark:text-white focus:outline-none w-full placeholder-slate-400 dark:placeholder-slate-500"
                 />
               </div>
 
@@ -912,7 +912,7 @@ export default function AdminPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none"
+                  className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none"
                 >
                   <option value="ALL">All Statuses</option>
                   <option value="PENDING">Pending</option>
@@ -925,7 +925,7 @@ export default function AdminPage() {
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none"
+                  className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none"
                 >
                   <option value="ALL">All Dates</option>
                   <option value="TODAY">Today Only</option>
@@ -939,22 +939,22 @@ export default function AdminPage() {
               {filteredBookings.map((b) => (
                 <div
                   key={b.id}
-                  className="bg-slate-900/90 border border-slate-800 hover:border-amber-500/40 rounded-2xl p-5 space-y-3 transition shadow-lg flex flex-col justify-between"
+                  className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-amber-500/40 rounded-2xl p-5 space-y-3 transition shadow-sm hover:shadow-md flex flex-col justify-between"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
                         {b.refNumber}
                       </span>
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
                           b.status === "CONFIRMED"
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                             : b.status === "PENDING"
-                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
                             : b.status === "COMPLETED"
-                            ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                            : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                            ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                            : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
                         }`}
                       >
                         {b.status}
@@ -962,58 +962,60 @@ export default function AdminPage() {
                     </div>
 
                     <div>
-                      <h4 className="text-base font-bold text-white leading-snug">{b.patientName}</h4>
-                      <p className="text-xs text-amber-200/80 font-semibold">{b.serviceName}</p>
+                      <h4 className="text-base font-bold text-[#1C1A17] dark:text-white leading-snug">{b.patientName}</h4>
+                      <p className="text-xs text-amber-600 dark:text-amber-200/80 font-semibold">{b.serviceName}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 bg-slate-950/60 p-2.5 rounded-xl">
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-[#7A7265] dark:text-slate-400 bg-slate-50 dark:bg-slate-950/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-900">
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                        <Calendar className="w-3.5 h-3.5 text-amber-500" />
                         <span>{b.appointmentDate}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        <Clock className="w-3.5 h-3.5 text-amber-500" />
                         <span>{b.timeSlot}</span>
                       </div>
                       <div className="flex items-center gap-1.5 col-span-2">
-                        <Phone className="w-3.5 h-3.5 text-amber-400" />
+                        <Phone className="w-3.5 h-3.5 text-amber-500" />
                         <span>{b.patientPhone}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2 text-xs">
-                    <a
-                      href={`https://wa.me/${b.patientPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                        `Namaste ${b.patientName}, this is Amulyam Dental Studio confirming your appointment for ${b.serviceName} on ${b.appointmentDate} at ${b.timeSlot}.`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition"
-                      title="Send WhatsApp Message"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                    </a>
-
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
                     <button
-                      onClick={() => handleTriggerFollowUp(b, "REMINDER_24H")}
-                      className="py-1.5 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-[11px] flex items-center gap-1 transition"
+                      onClick={() => {
+                        setSelectedBooking(b);
+                        setDoctorNotes(b.doctorNotes || "");
+                        setPrescription(b.prescription || "");
+                        setActionType("NOTES");
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                     >
-                      <Bell className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Reminder</span>
+                      <FileText className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Notes</span>
                     </button>
 
                     <button
                       onClick={() => {
                         setSelectedBooking(b);
-                        setActionType("STATUS");
                         setNewStatus(b.status);
+                        setActionType("STATUS");
                       }}
-                      className="py-1.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition"
+                      className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                     >
-                      Manage
+                      <span>Update Status</span>
                     </button>
+
+                    <a
+                      href={`https://wa.me/${b.patientPhone.replace(/\D/g, "")}?text=Hi%20${encodeURIComponent(b.patientName)},%20this%20is%20Amulyam%20Dental%20Studio%20regarding%20your%20appointment%20(${b.refNumber}).`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-xl bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 transition cursor-pointer"
+                      title="Chat on WhatsApp"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </a>
                   </div>
                 </div>
               ))}
@@ -1021,54 +1023,57 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ----------------- TAB 5: BILLING & INVOICES ----------------- */}
+        {/* ----------------- TAB: TREATMENT PLANS MANAGER ----------------- */}
+        {activeTab === "treatment_plans" && (
+          <TreatmentPlanManager plans={treatmentPlans} onRefresh={fetchData} />
+        )}
+
+        {/* ----------------- TAB: BILLING & POS INVOICES ----------------- */}
         {activeTab === "billing" && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+            <div className="flex justify-between items-center bg-white dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <div>
-                <h4 className="text-sm font-bold text-white">Clinical Invoices &amp; Billing History</h4>
-                <p className="text-xs text-slate-400">Total generated invoices and outstanding balances</p>
+                <h3 className="text-base font-bold text-[#1C1A17] dark:text-white">Tax Invoices &amp; POS Receipts</h3>
+                <p className="text-xs text-[#7A7265] dark:text-slate-400">Total generated invoices: {invoices.length}</p>
               </div>
               <button
-                onClick={() => setIsBillingModalOpen(true)}
-                className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition"
+                onClick={() => {
+                  setSelectedBookingForModal(bookings[0] || null);
+                  setIsBillingModalOpen(true);
+                }}
+                className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer"
               >
-                + New Invoice
+                <Receipt className="w-4 h-4" />
+                <span>+ Create POS Invoice</span>
               </button>
             </div>
 
-            <div className="bg-slate-900/80 rounded-2xl border border-slate-800 p-4 overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 overflow-x-auto shadow-sm">
+              <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400">
-                    <th className="py-2.5 px-3">Invoice #</th>
-                    <th className="py-2.5 px-3">Patient</th>
-                    <th className="py-2.5 px-3">Date</th>
-                    <th className="py-2.5 px-3">Grand Total</th>
-                    <th className="py-2.5 px-3">Paid</th>
-                    <th className="py-2.5 px-3">Balance</th>
-                    <th className="py-2.5 px-3">Payment Mode</th>
-                    <th className="py-2.5 px-3">Status</th>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-[#7A7265] dark:text-slate-400">
+                    <th className="pb-3">Invoice #</th>
+                    <th className="pb-3">Patient</th>
+                    <th className="pb-3">Date</th>
+                    <th className="pb-3">Payment Mode</th>
+                    <th className="pb-3">Total Amount</th>
+                    <th className="pb-3">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {invoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-slate-800/40">
-                      <td className="py-3 px-3 font-mono font-bold text-amber-300">{inv.invoiceNumber}</td>
-                      <td className="py-3 px-3 font-bold text-white">{inv.patientName}</td>
-                      <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">
-                        {new Date(inv.createdAt).toLocaleDateString("en-IN")}
-                      </td>
-                      <td className="py-3 px-3 font-mono font-bold text-white">₹{inv.grandTotal.toLocaleString("en-IN")}</td>
-                      <td className="py-3 px-3 font-mono text-emerald-400 font-bold">₹{inv.amountPaid.toLocaleString("en-IN")}</td>
-                      <td className="py-3 px-3 font-mono text-rose-400 font-bold">₹{inv.balanceDue.toLocaleString("en-IN")}</td>
-                      <td className="py-3 px-3 font-mono text-slate-300">{inv.paymentMethod}</td>
-                      <td className="py-3 px-3">
+                    <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                      <td className="py-3 font-mono font-bold text-amber-600 dark:text-amber-400">{inv.invoiceNumber}</td>
+                      <td className="py-3 font-semibold text-[#1C1A17] dark:text-white">{inv.patientName}</td>
+                      <td className="py-3 text-[#7A7265] dark:text-slate-400 font-mono text-[11px]">{new Date(inv.createdAt).toLocaleDateString("en-IN")}</td>
+                      <td className="py-3 font-mono text-slate-700 dark:text-slate-300">{inv.paymentMethod}</td>
+                      <td className="py-3 font-bold font-mono text-emerald-600 dark:text-emerald-400">₹{inv.grandTotal.toLocaleString("en-IN")}</td>
+                      <td className="py-3">
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             inv.paymentStatus === "PAID"
-                              ? "bg-emerald-500/20 text-emerald-300"
-                              : "bg-amber-500/20 text-amber-300"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                           }`}
                         >
                           {inv.paymentStatus}
@@ -1082,66 +1087,59 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ----------------- TAB 6: TREATMENT PLANS ----------------- */}
-        {activeTab === "treatment_plans" && (
-          <TreatmentPlanManager plans={treatmentPlans} onRefresh={fetchData} />
-        )}
-
-        {/* ----------------- TAB 7: CASH REGISTER RECONCILIATION ----------------- */}
+        {/* ----------------- TAB: CASH REGISTER & EOD RECONCILIATION ----------------- */}
         {activeTab === "cash_register" && (
           <CashRegisterSummary entries={cashEntries} onRefresh={fetchData} />
         )}
 
-        {/* ----------------- TAB 8: ANALYTICS & KPIS ----------------- */}
+        {/* ----------------- TAB: ANALYTICS & KPIS ----------------- */}
         {activeTab === "analytics" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-1">
-              <span className="text-xs text-slate-400">Total Registered Patients</span>
-              <p className="text-3xl font-black text-white font-mono">{patients.length}</p>
+            <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl space-y-1 shadow-sm">
+              <span className="text-xs text-[#7A7265] dark:text-slate-400">Total Bookings (All-Time)</span>
+              <p className="text-2xl font-black font-mono text-amber-600 dark:text-amber-400">{bookings.length}</p>
             </div>
-            <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-1">
-              <span className="text-xs text-slate-400">Today's Appointments</span>
-              <p className="text-3xl font-black text-amber-300 font-mono">
-                {bookings.filter((b) => b.appointmentDate === todayStr).length}
+            <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl space-y-1 shadow-sm">
+              <span className="text-xs text-[#7A7265] dark:text-slate-400">Completed Dental Procedures</span>
+              <p className="text-2xl font-black font-mono text-purple-600 dark:text-purple-400">{stats?.completedBookings || 0}</p>
+            </div>
+            <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl space-y-1 shadow-sm">
+              <span className="text-xs text-[#7A7265] dark:text-slate-400">Invoices Billed Total</span>
+              <p className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                ₹{invoices.reduce((sum, i) => sum + i.grandTotal, 0).toLocaleString("en-IN")}
               </p>
             </div>
-            <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-1">
-              <span className="text-xs text-slate-400">Confirmed Patients</span>
-              <p className="text-3xl font-black text-emerald-400 font-mono">
-                {bookings.filter((b) => b.status === "CONFIRMED").length}
-              </p>
-            </div>
-            <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-1">
-              <span className="text-xs text-slate-400">Website Inquiries</span>
-              <p className="text-3xl font-black text-sky-400 font-mono">{inquiries.length}</p>
+            <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl space-y-1 shadow-sm">
+              <span className="text-xs text-[#7A7265] dark:text-slate-400">Total Patients in MPI CRM</span>
+              <p className="text-2xl font-black font-mono text-sky-600 dark:text-sky-400">{patients.length}</p>
             </div>
           </div>
         )}
 
-        {/* ----------------- TAB 9: WEB INQUIRIES ----------------- */}
+        {/* ----------------- TAB: WEB INQUIRIES ----------------- */}
         {activeTab === "inquiries" && (
-          <div className="space-y-3">
-            {inquiries.map((inq) => (
-              <div
-                key={inq.id}
-                className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-white text-sm">
-                    {inq.firstName} {inq.lastName}
-                  </h4>
-                  <span className="text-xs text-slate-400">
-                    {new Date(inq.createdAt).toLocaleDateString("en-IN")}
-                  </span>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {inquiries.map((inq) => (
+                <div
+                  key={inq.id}
+                  className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-2 shadow-sm"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-[#1C1A17] dark:text-white text-sm">
+                        {inq.firstName} {inq.lastName}
+                      </h4>
+                      <p className="text-xs text-[#7A7265] dark:text-slate-400">{inq.phone} • {inq.email}</p>
+                    </div>
+                    <span className="text-[10px] text-[#7A7265] dark:text-slate-500 font-mono">
+                      {new Date(inq.createdAt).toLocaleDateString("en-IN")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-900">"{inq.message}"</p>
                 </div>
-                <p className="text-xs text-amber-300 font-semibold">{inq.serviceOfInterest || inq.subject}</p>
-                <p className="text-xs text-slate-300 bg-slate-950 p-3 rounded-xl">"{inq.message}"</p>
-                <div className="flex items-center gap-4 text-xs text-slate-400 pt-2">
-                  <span>📞 {inq.phone}</span>
-                  <span>✉️ {inq.email}</span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -1210,24 +1208,24 @@ export default function AdminPage() {
         <div
           data-lenis-prevent
           onWheel={(e) => e.stopPropagation()}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overscroll-contain"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md overscroll-contain"
         >
           <div
             data-lenis-prevent
-            className="bg-slate-900 border border-amber-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 overscroll-contain"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-amber-500/30 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 overscroll-contain text-[#1C1A17] dark:text-white"
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h4 className="text-base font-bold text-white">Manage: {selectedBooking.refNumber}</h4>
-              <button onClick={() => setSelectedBooking(null)} className="text-slate-400 hover:text-white">✕</button>
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h4 className="text-base font-extrabold text-[#1C1A17] dark:text-white">Manage: {selectedBooking.refNumber}</h4>
+              <button onClick={() => setSelectedBooking(null)} className="p-1 text-[#7A7265] dark:text-slate-400 hover:text-black dark:hover:text-white cursor-pointer">✕</button>
             </div>
 
             <form onSubmit={handleActionSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1">Update Status</label>
+                <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Update Status</label>
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value as BookingStatus)}
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none font-semibold"
                 >
                   <option value="PENDING">Pending</option>
                   <option value="CONFIRMED">Confirmed</option>
@@ -1238,13 +1236,13 @@ export default function AdminPage() {
 
               {newStatus === "CANCELLED" && (
                 <div>
-                  <label className="block text-xs text-slate-300 font-semibold mb-1">Reason for Cancellation</label>
+                  <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Reason for Cancellation</label>
                   <input
                     type="text"
                     value={cancellationReason}
                     onChange={(e) => setCancellationReason(e.target.value)}
                     placeholder="e.g. Patient rescheduled via phone"
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none"
                   />
                 </div>
               )}
@@ -1253,14 +1251,14 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedBooking(null)}
-                  className="flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition"
+                  className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition cursor-pointer shadow-md"
                 >
                   {actionLoading ? "Saving..." : "Save Changes"}
                 </button>

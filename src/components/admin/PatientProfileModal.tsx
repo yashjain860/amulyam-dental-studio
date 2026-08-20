@@ -98,8 +98,8 @@ export default function PatientProfileModal({
     setError("");
 
     try {
-      if (patient?.id) {
-        // Edit existing patient profile
+      if (patient) {
+        // Update existing patient
         const res = await fetch("/api/admin/patients", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -124,7 +124,7 @@ export default function PatientProfileModal({
           onSaved(data.patient);
           onClose();
         } else {
-          setError(data.error || "Failed to update profile.");
+          setError(data.error || "Failed to update patient profile.");
         }
       } else {
         // Create new offline/walk-in patient profile
@@ -165,23 +165,23 @@ export default function PatientProfileModal({
     <div
       data-lenis-prevent
       onWheel={(e) => e.stopPropagation()}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto overscroll-contain"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md overflow-y-auto overscroll-contain"
     >
       <div
         data-lenis-prevent
-        className="bg-slate-900 border border-amber-500/30 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-amber-500/30 rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 text-[#1C1A17] dark:text-white"
       >
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-amber-500/20 flex items-center justify-between">
+        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 font-bold">
               <User className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white leading-tight">
+              <h3 className="text-base font-extrabold text-[#1C1A17] dark:text-white leading-tight">
                 {patient ? `Edit Medical Profile: ${patient.name}` : "Register Offline / Walk-In Patient Profile"}
               </h3>
-              <p className="text-xs text-amber-200/60 leading-tight">
+              <p className="text-xs text-[#7A7265] dark:text-slate-400 leading-tight">
                 Master Patient Index (MPI), Clinical History &amp; Demographics
               </p>
             </div>
@@ -189,7 +189,7 @@ export default function PatientProfileModal({
 
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+            className="p-1.5 text-[#7A7265] dark:text-slate-400 hover:text-black dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -203,7 +203,7 @@ export default function PatientProfileModal({
           className="p-6 overflow-y-auto space-y-4 flex-1 text-xs sm:text-sm overscroll-contain"
         >
           {error && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -211,49 +211,49 @@ export default function PatientProfileModal({
 
           {/* Section 1: Demographics */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-800 pb-1">
+            <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-1">
               <User className="w-3.5 h-3.5" /> 1. Patient Demographics &amp; Contact
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1">Full Legal Name *</label>
+                <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Full Legal Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Ramesh Chandra Sharma"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1">Mobile / WhatsApp *</label>
+                <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Mobile / WhatsApp *</label>
                 <input
                   type="tel"
                   required
                   placeholder="+91 98260 00000"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1">Email Address</label>
+                <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Email Address</label>
                 <input
                   type="email"
                   placeholder="patient@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs text-slate-300 font-semibold mb-1">Age</label>
+                  <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Age</label>
                   <input
                     type="number"
                     min="1"
@@ -261,15 +261,15 @@ export default function PatientProfileModal({
                     placeholder="e.g. 35"
                     value={age}
                     onChange={(e) => setAge(e.target.value ? parseInt(e.target.value) : "")}
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none font-mono"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-300 font-semibold mb-1">Gender</label>
+                  <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Gender</label>
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none font-semibold"
                   >
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -282,17 +282,17 @@ export default function PatientProfileModal({
 
           {/* Section 2: Clinical Alerts & Medical History */}
           <div className="space-y-3 pt-2">
-            <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-800 pb-1">
+            <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-1">
               <HeartPulse className="w-3.5 h-3.5" /> 2. Medical Alerts, Conditions &amp; Allergies
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1">Blood Group</label>
+                <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Blood Group</label>
                 <select
                   value={bloodGroup}
                   onChange={(e) => setBloodGroup(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none font-bold"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none font-bold"
                 >
                   <option value="O+">O Positive (O+)</option>
                   <option value="O-">O Negative (O-)</option>
@@ -307,11 +307,11 @@ export default function PatientProfileModal({
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1">Patient Origin Source</label>
+                <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Patient Origin Source</label>
                 <select
                   value={source}
                   onChange={(e) => setSource(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none font-semibold"
                 >
                   <option value="WALK_IN">🚶 Walk-In / Frontdesk</option>
                   <option value="PHONE">📞 Phone Call / Inquiry</option>
@@ -321,7 +321,7 @@ export default function PatientProfileModal({
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1">
+                <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">
                   Systemic Medical History (e.g. Diabetes, BP, Cardiac)
                 </label>
                 <input
@@ -329,20 +329,20 @@ export default function PatientProfileModal({
                   placeholder="e.g. Type 2 Diabetes, Hypertension on medication"
                   value={medicalHistory}
                   onChange={(e) => setMedicalHistory(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1">
-                  Drug &amp; Material Allergies (Crucial for Local Anaesthesia &amp; Antibiotics)
+                <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">
+                  Drug &amp; Material Allergies (Crucial for Local Anaesthesia)
                 </label>
                 <input
                   type="text"
                   placeholder="e.g. Penicillin, Sulfa drugs, Latex (or None)"
                   value={allergies}
                   onChange={(e) => setAllergies(e.target.value)}
-                  className="w-full bg-slate-950 border border-rose-500/40 focus:border-rose-400 rounded-xl p-2.5 text-xs text-rose-300 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-rose-500/40 focus:border-rose-400 rounded-xl p-2.5 text-xs text-rose-700 dark:text-rose-300 focus:outline-none"
                 />
               </div>
             </div>
@@ -350,59 +350,59 @@ export default function PatientProfileModal({
 
           {/* Section 3: Address & Emergency Contact */}
           <div className="space-y-3 pt-2">
-            <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-800 pb-1">
+            <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-1">
               <MapPin className="w-3.5 h-3.5" /> 3. Address &amp; Emergency Contact
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1">Residential Address (Bhopal)</label>
+                <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Residential Address (Bhopal)</label>
                 <input
                   type="text"
                   placeholder="e.g. Flat 302, BDA Colony, Awadhpuri, Bhopal"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1">Emergency Contact &amp; Relation</label>
+                <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Emergency Contact &amp; Relation</label>
                 <input
                   type="text"
                   placeholder="e.g. Sunita Sharma (Spouse) +91 98260 99999"
                   value={emergencyContact}
                   onChange={(e) => setEmergencyContact(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-slate-300 font-semibold mb-1">Internal Doctor / Clinic Notes</label>
+              <label className="block text-xs text-slate-800 dark:text-slate-300 font-bold mb-1">Internal Doctor / Clinic Notes</label>
               <textarea
                 rows={2}
                 placeholder="e.g. Prefers evening appointments, anxious about dental drills, needs bite guard"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-[#1C1A17] dark:text-white focus:outline-none"
               />
             </div>
           </div>
 
           {/* Submit Action */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-2">
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition"
+              className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg transition disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-md transition disabled:opacity-50 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{saving ? "Saving..." : patient ? "Save Profile Changes" : "Register Patient"}</span>
