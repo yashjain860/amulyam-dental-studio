@@ -135,14 +135,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // Convert chat history to Gemini contents format
+    // Convert chat history to Gemini contents format with strict role validation & merging
     const contents: any[] = [];
     for (const msg of messages) {
+      if (!msg.content || typeof msg.content !== "string") continue;
       const role = msg.role === "assistant" ? "model" : "user";
-      contents.push({
-        role,
-        parts: [{ text: msg.content }]
-      });
+      
+      // If previous message had the same role, merge parts
+      if (contents.length > 0 && contents[contents.length - 1].role === role) {
+        contents[contents.length - 1].parts[0].text += `\n${msg.content}`;
+      } else {
+        contents.push({
+          role,
+          parts: [{ text: msg.content }]
+        });
+      }
     }
 
     const todayStr = new Date().toISOString().split("T")[0];

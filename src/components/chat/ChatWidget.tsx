@@ -58,6 +58,19 @@ export default function ChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Hydrate conversation memory from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("amulyam_ai_chat_session_v2");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch (e) {}
+  }, []);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -82,6 +95,9 @@ export default function ChatWidget() {
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
+    try {
+      sessionStorage.setItem("amulyam_ai_chat_session_v2", JSON.stringify(newMessages));
+    } catch (e) {}
     setInput("");
     setLoading(true);
 
@@ -107,32 +123,38 @@ export default function ChatWidget() {
         bookingConfirmation: data.bookingConfirmation || null
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      const finalMessages = [...newMessages, assistantMessage];
+      setMessages(finalMessages);
+      try {
+        sessionStorage.setItem("amulyam_ai_chat_session_v2", JSON.stringify(finalMessages));
+      } catch (e) {}
     } catch (err) {
       console.error("Chat error:", err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
-          role: "assistant",
-          content: "I am having trouble connecting to the clinic server. You can reach Dr. Shreya Nidhi directly on WhatsApp at **+91 97531 33330**.",
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-        }
-      ]);
+      const fallbackMsg: Message = {
+        id: `err-${Date.now()}`,
+        role: "assistant",
+        content: "I am having trouble connecting to the clinic server. You can reach Dr. Shreya Nidhi directly on WhatsApp at **+91 97531 33330**.",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      };
+      setMessages((prev) => [...prev, fallbackMsg]);
     } finally {
       setLoading(false);
     }
   };
 
   const resetChat = () => {
-    setMessages([
+    const initial: Message[] = [
       {
         id: `welcome-${Date.now()}`,
         role: "assistant",
         content: `👋 Hello! I am Dr. Shreya Nidhi's AI Concierge. How can I assist you with your dental care today?`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       }
-    ]);
+    ];
+    setMessages(initial);
+    try {
+      sessionStorage.removeItem("amulyam_ai_chat_session_v2");
+    } catch (e) {}
   };
 
   return (
