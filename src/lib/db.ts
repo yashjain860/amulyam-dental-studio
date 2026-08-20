@@ -1,7 +1,20 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { Booking, ContactInquiry, ClinicSlotOverride, ClinicStats, BookingStatus, UserAccount } from "./types";
+import {
+  Booking,
+  ContactInquiry,
+  ClinicSlotOverride,
+  ClinicStats,
+  BookingStatus,
+  UserAccount,
+  QueueToken,
+  PatientDentalChart,
+  Prescription,
+  TreatmentPlan,
+  Invoice,
+  CashRegisterEntry,
+} from "./types";
 
 export function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password + "_amulyam_salt_2026").digest("hex");
@@ -12,7 +25,14 @@ interface DatabaseSchema {
   bookings: Booking[];
   inquiries: ContactInquiry[];
   slotOverrides: ClinicSlotOverride[];
+  queue: QueueToken[];
+  dentalCharts: PatientDentalChart[];
+  prescriptions: Prescription[];
+  treatmentPlans: TreatmentPlan[];
+  invoices: Invoice[];
+  cashRegister: CashRegisterEntry[];
 }
+
 
 function getDbFilePath(): string {
   // If running in Vercel or AWS Lambda serverless environment, /var/task is read-only.
@@ -155,6 +175,260 @@ function getInitialData(): DatabaseSchema {
       },
     ],
     slotOverrides: [],
+    queue: [
+      {
+        id: "q-1",
+        tokenNumber: "#T-01",
+        bookingId: "book-101",
+        patientName: "Aarav Sharma",
+        patientPhone: "+91 98260 12345",
+        serviceName: "Root Canal Treatment (RCT)",
+        status: "IN_CHAIR",
+        chairAssigned: "Chair 1 (Main Operatory)",
+        checkInTime: "11:15 AM",
+        calledAt: "11:28 AM",
+        notes: "RVG done. Tooth #36 access cavity prepared.",
+      },
+      {
+        id: "q-2",
+        tokenNumber: "#T-02",
+        bookingId: "book-102",
+        patientName: "Neha Gupta",
+        patientPhone: "+91 94250 98765",
+        serviceName: "Teeth Whitening (Bleaching)",
+        status: "WAITING",
+        checkInTime: "03:00 PM",
+        notes: "Pre-wedding laser bleaching consultation.",
+      },
+      {
+        id: "q-3",
+        tokenNumber: "#T-03",
+        patientName: "Amitabh Verma (Walk-In)",
+        patientPhone: "+91 98930 11223",
+        serviceName: "Emergency Toothache / Pain Relief",
+        status: "WAITING",
+        checkInTime: "03:10 PM",
+        notes: "Walk-in emergency: Acute pain upper right molar.",
+      },
+    ],
+    dentalCharts: [
+      {
+        patientId: "usr-aarav-101",
+        patientEmail: "aarav.sharma@example.com",
+        patientName: "Aarav Sharma",
+        teeth: {
+          36: {
+            toothNumber: 36,
+            condition: "RCT_NEEDED",
+            surfaces: { occlusal: true, distal: true },
+            notes: "Deep disto-occlusal caries invading pulp chamber. Severe cold sensitivity.",
+            updatedAt: new Date().toISOString(),
+          },
+          16: {
+            toothNumber: 16,
+            condition: "RESTORED",
+            surfaces: { occlusal: true },
+            notes: "Composite restoration intact (2025).",
+            updatedAt: new Date().toISOString(),
+          },
+          48: {
+            toothNumber: 48,
+            condition: "MISSING",
+            notes: "Surgically extracted in 2024.",
+            updatedAt: new Date().toISOString(),
+          },
+        },
+        lastUpdated: new Date().toISOString(),
+      },
+    ],
+    prescriptions: [
+      {
+        id: "rx-1",
+        rxNumber: "ADS-RX-2026-8941",
+        bookingId: "book-101",
+        patientName: "Aarav Sharma",
+        patientAge: 29,
+        patientGender: "Male",
+        patientPhone: "+91 98260 12345",
+        patientEmail: "aarav.sharma@example.com",
+        diagnosis: "Acute Irreversible Pulpitis w/ Apical Periodontitis #36",
+        chiefComplaint: "Severe throbbing pain in lower left molar radiating to jaw.",
+        medicines: [
+          {
+            name: "Augmentin (Amoxicillin + Pot. Clavulanate)",
+            dosage: "625 mg",
+            frequency: "1-0-1",
+            timing: "After Food",
+            duration: "5 Days",
+            instructions: "Complete entire antibiotic course without skipping.",
+          },
+          {
+            name: "Zerodol-SP (Aceclofenac + Paracetamol + Serratiopeptidase)",
+            dosage: "1 Tab",
+            frequency: "1-0-1",
+            timing: "After Food",
+            duration: "3 Days",
+            instructions: "For pain & swelling relief. Take strictly after meals.",
+          },
+          {
+            name: "Hexidine Mouthwash (Chlorhexidine 0.2%)",
+            dosage: "10 ml",
+            frequency: "1-0-1",
+            timing: "After Food",
+            duration: "7 Days",
+            instructions: "Swish for 60 seconds twice daily. Do not swallow.",
+          },
+        ],
+        specialAdvice: "Avoid biting hard foods on left side until final crown placement.",
+        doctorName: "Dr. Shreya Nidhi (BDS, MDS)",
+        doctorRegistration: "MPDC-8842-A",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    treatmentPlans: [
+      {
+        id: "tp-1",
+        bookingId: "book-101",
+        patientName: "Aarav Sharma",
+        patientEmail: "aarav.sharma@example.com",
+        title: "Single-Visit Rotary RCT + CAD/CAM Zirconia Crown (#36)",
+        steps: [
+          {
+            id: "step-1",
+            title: "Pre-Op Digital RVG X-Ray & Bio-mechanical Preparation",
+            description: "Access opening, canal location (MB, ML, D), rotary nickel-titanium shaping to 4% taper.",
+            estimatedCost: 2500,
+            status: "COMPLETED",
+            completedAt: new Date().toISOString(),
+          },
+          {
+            id: "step-2",
+            title: "Canal Chemo-Mechanical Disinfection & 3D Warm Gutta-Percha Obturation",
+            description: "Sonic irrigation w/ 3% NaOCl and resin-based AH Plus sealer.",
+            estimatedCost: 2000,
+            status: "IN_PROGRESS",
+          },
+          {
+            id: "step-3",
+            title: "Fiber Post Core Build-Up & Dual-Cure Composite",
+            description: "Structural reinforcement of tooth #36 crown structure.",
+            estimatedCost: 1500,
+            status: "PLANNED",
+          },
+          {
+            id: "step-4",
+            title: "CAD/CAM Multi-Layered Zirconia Crown (15-Yr Warranty)",
+            description: "Intraoral 3D scan, custom milling, and resin luting cementation.",
+            estimatedCost: 6500,
+            status: "PLANNED",
+          },
+        ],
+        totalEstimatedCost: 12500,
+        totalPaid: 4500,
+        status: "ACTIVE",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    invoices: [
+      {
+        id: "inv-101",
+        invoiceNumber: "ADS-INV-2026-0042",
+        bookingId: "book-101",
+        patientName: "Aarav Sharma",
+        patientPhone: "+91 98260 12345",
+        patientEmail: "aarav.sharma@example.com",
+        items: [
+          {
+            id: "item-1",
+            description: "Rotary Endodontics (Root Canal Treatment - Molar #36)",
+            category: "Endodontics",
+            unitPrice: 4500,
+            quantity: 1,
+            taxableAmount: 4500,
+          },
+          {
+            id: "item-2",
+            description: "High-Resolution Digital RVG Diagnostic X-Ray (Pre-Op + Working Length)",
+            category: "Diagnostic",
+            unitPrice: 400,
+            quantity: 2,
+            taxableAmount: 800,
+          },
+        ],
+        subtotal: 5300,
+        discountTotal: 300,
+        taxTotal: 0,
+        grandTotal: 5000,
+        amountPaid: 5000,
+        balanceDue: 0,
+        paymentMethod: "UPI_QR",
+        paymentStatus: "PAID",
+        receiptUrl: "/receipts/ADS-INV-2026-0042.pdf",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "inv-102",
+        invoiceNumber: "ADS-INV-2026-0043",
+        bookingId: "book-104",
+        patientName: "Pooja Trivedi",
+        patientPhone: "+91 97520 33445",
+        patientEmail: "pooja.t@example.com",
+        items: [
+          {
+            id: "item-1",
+            description: "Clear Aligners 3D Treatment Plan & Step 1-4 Trays",
+            category: "Orthodontics",
+            unitPrice: 35000,
+            quantity: 1,
+            taxableAmount: 35000,
+          },
+        ],
+        subtotal: 35000,
+        discountTotal: 2000,
+        taxTotal: 0,
+        grandTotal: 33000,
+        amountPaid: 20000,
+        balanceDue: 13000,
+        paymentMethod: "CARD",
+        paymentStatus: "PARTIAL",
+        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      },
+    ],
+    cashRegister: [
+      {
+        id: "cr-1",
+        date: today,
+        type: "INCOME",
+        category: "Patient Treatment Billing",
+        amount: 5000,
+        method: "UPI_QR",
+        description: "Aarav Sharma - RCT #36 & RVG (ADS-INV-2026-0042)",
+        recordedBy: "Frontdesk / Priya",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "cr-2",
+        date: today,
+        type: "INCOME",
+        category: "Consultation Fee",
+        amount: 500,
+        method: "CASH",
+        description: "Walk-in Consultation - Amitabh Verma",
+        recordedBy: "Frontdesk / Priya",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "cr-3",
+        date: today,
+        type: "EXPENSE",
+        category: "Clinic Consumables",
+        amount: 350,
+        method: "CASH",
+        description: "Sterilization autoclave indicator strips & distilled water",
+        recordedBy: "Dr. Shreya Nidhi",
+        createdAt: new Date().toISOString(),
+      },
+    ],
   };
 }
 
@@ -449,4 +723,245 @@ export function getBookingsForUser(email: string, phone?: string, userId?: strin
     return false;
   }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
+
+// ----------------------------------------------------
+// QUEUE & WAITING ROOM OPERATIONS
+// ----------------------------------------------------
+export function getAllQueueTokens(): QueueToken[] {
+  const db = readDb();
+  return db.queue || [];
+}
+
+export function createQueueToken(input: Omit<QueueToken, "id" | "tokenNumber" | "checkInTime">): QueueToken {
+  const db = readDb();
+  if (!db.queue) db.queue = [];
+  const tokenNum = `#T-${String(db.queue.length + 1).padStart(2, "0")}`;
+  const nowStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const newToken: QueueToken = {
+    ...input,
+    id: `q-${Date.now()}`,
+    tokenNumber: tokenNum,
+    checkInTime: nowStr,
+  };
+
+  db.queue.push(newToken);
+  writeDb(db);
+  return newToken;
+}
+
+export function updateQueueToken(id: string, updates: Partial<QueueToken>): QueueToken | null {
+  const db = readDb();
+  if (!db.queue) db.queue = [];
+  const idx = db.queue.findIndex((q) => q.id === id);
+  if (idx === -1) return null;
+
+  db.queue[idx] = {
+    ...db.queue[idx],
+    ...updates,
+  };
+
+  writeDb(db);
+  return db.queue[idx];
+}
+
+export function deleteQueueToken(id: string): boolean {
+  const db = readDb();
+  if (!db.queue) return false;
+  const initial = db.queue.length;
+  db.queue = db.queue.filter((q) => q.id !== id);
+  if (db.queue.length !== initial) {
+    writeDb(db);
+    return true;
+  }
+  return false;
+}
+
+// ----------------------------------------------------
+// DENTAL CHART & ODONTOGRAM OPERATIONS
+// ----------------------------------------------------
+export function getDentalChart(patientEmailOrId: string): PatientDentalChart | null {
+  const db = readDb();
+  const clean = patientEmailOrId.toLowerCase().trim();
+  return (
+    (db.dentalCharts || []).find(
+      (c) => c.patientEmail.toLowerCase() === clean || c.patientId === clean
+    ) || null
+  );
+}
+
+export function saveDentalChart(chart: PatientDentalChart): PatientDentalChart {
+  const db = readDb();
+  if (!db.dentalCharts) db.dentalCharts = [];
+  const idx = db.dentalCharts.findIndex(
+    (c) => c.patientEmail.toLowerCase() === chart.patientEmail.toLowerCase()
+  );
+
+  const updatedChart: PatientDentalChart = {
+    ...chart,
+    lastUpdated: new Date().toISOString(),
+  };
+
+  if (idx >= 0) {
+    db.dentalCharts[idx] = updatedChart;
+  } else {
+    db.dentalCharts.push(updatedChart);
+  }
+
+  writeDb(db);
+  return updatedChart;
+}
+
+// ----------------------------------------------------
+// PRESCRIPTION (Rx) OPERATIONS
+// ----------------------------------------------------
+export function getAllPrescriptions(): Prescription[] {
+  const db = readDb();
+  return (db.prescriptions || []).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
+export function getPrescriptionById(id: string): Prescription | null {
+  const db = readDb();
+  return (db.prescriptions || []).find((p) => p.id === id || p.rxNumber === id) || null;
+}
+
+export function createPrescription(
+  input: Omit<Prescription, "id" | "rxNumber" | "createdAt">
+): Prescription {
+  const db = readDb();
+  if (!db.prescriptions) db.prescriptions = [];
+  const rxNum = `ADS-RX-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const newRx: Prescription = {
+    ...input,
+    id: `rx-${Date.now()}`,
+    rxNumber: rxNum,
+    createdAt: new Date().toISOString(),
+  };
+
+  db.prescriptions.unshift(newRx);
+  writeDb(db);
+  return newRx;
+}
+
+// ----------------------------------------------------
+// TREATMENT PLANS OPERATIONS
+// ----------------------------------------------------
+export function getAllTreatmentPlans(): TreatmentPlan[] {
+  const db = readDb();
+  return db.treatmentPlans || [];
+}
+
+export function createTreatmentPlan(
+  input: Omit<TreatmentPlan, "id" | "createdAt">
+): TreatmentPlan {
+  const db = readDb();
+  if (!db.treatmentPlans) db.treatmentPlans = [];
+
+  const newPlan: TreatmentPlan = {
+    ...input,
+    id: `tp-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+  };
+
+  db.treatmentPlans.unshift(newPlan);
+  writeDb(db);
+  return newPlan;
+}
+
+export function updateTreatmentPlan(id: string, updates: Partial<TreatmentPlan>): TreatmentPlan | null {
+  const db = readDb();
+  if (!db.treatmentPlans) db.treatmentPlans = [];
+  const idx = db.treatmentPlans.findIndex((p) => p.id === id);
+  if (idx === -1) return null;
+
+  db.treatmentPlans[idx] = {
+    ...db.treatmentPlans[idx],
+    ...updates,
+  };
+
+  writeDb(db);
+  return db.treatmentPlans[idx];
+}
+
+// ----------------------------------------------------
+// BILLING & INVOICE OPERATIONS
+// ----------------------------------------------------
+export function getAllInvoices(): Invoice[] {
+  const db = readDb();
+  return (db.invoices || []).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
+export function getInvoiceById(id: string): Invoice | null {
+  const db = readDb();
+  return (db.invoices || []).find((i) => i.id === id || i.invoiceNumber === id) || null;
+}
+
+export function createInvoice(input: Omit<Invoice, "id" | "invoiceNumber" | "createdAt">): Invoice {
+  const db = readDb();
+  if (!db.invoices) db.invoices = [];
+  const invNum = `ADS-INV-${new Date().getFullYear()}-${String(db.invoices.length + 1).padStart(4, "0")}`;
+
+  const newInv: Invoice = {
+    ...input,
+    id: `inv-${Date.now()}`,
+    invoiceNumber: invNum,
+    createdAt: new Date().toISOString(),
+  };
+
+  db.invoices.unshift(newInv);
+
+  // Auto-record into cash register if paid
+  if (newInv.amountPaid > 0) {
+    if (!db.cashRegister) db.cashRegister = [];
+    db.cashRegister.unshift({
+      id: `cr-${Date.now()}`,
+      date: new Date().toISOString().split("T")[0],
+      type: "INCOME",
+      category: "Patient Treatment Billing",
+      amount: newInv.amountPaid,
+      method: newInv.paymentMethod,
+      description: `${newInv.patientName} (${newInv.invoiceNumber})`,
+      recordedBy: "Frontdesk / Cashier",
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  writeDb(db);
+  return newInv;
+}
+
+// ----------------------------------------------------
+// CASH REGISTER & EOD RECONCILIATION
+// ----------------------------------------------------
+export function getAllCashRegisterEntries(date?: string): CashRegisterEntry[] {
+  const db = readDb();
+  const entries = db.cashRegister || [];
+  if (date) {
+    return entries.filter((e) => e.date === date);
+  }
+  return entries;
+}
+
+export function createCashRegisterEntry(
+  input: Omit<CashRegisterEntry, "id" | "createdAt">
+): CashRegisterEntry {
+  const db = readDb();
+  if (!db.cashRegister) db.cashRegister = [];
+
+  const newEntry: CashRegisterEntry = {
+    ...input,
+    id: `cr-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+  };
+
+  db.cashRegister.unshift(newEntry);
+  writeDb(db);
+  return newEntry;
+}
+
 

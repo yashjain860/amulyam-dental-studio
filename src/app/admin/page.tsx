@@ -29,15 +29,52 @@ import {
   PlusCircle,
   LogOut,
   Layers,
+  Stethoscope,
+  Users,
+  Receipt,
+  Banknote,
+  FileText,
+  Sliders,
+  DollarSign,
 } from "lucide-react";
-import { Booking, ContactInquiry, ClinicStats, BookingStatus } from "@/lib/types";
-import { TIME_SLOTS, CLINIC_INFO } from "@/lib/constants";
+import {
+  Booking,
+  ContactInquiry,
+  ClinicStats,
+  BookingStatus,
+  QueueToken,
+  PatientDentalChart,
+  Prescription,
+  TreatmentPlan,
+  Invoice,
+  CashRegisterEntry,
+} from "@/lib/types";
+import { TIME_SLOTS, CLINIC_INFO, LEAD_DOCTOR } from "@/lib/constants";
 import {
   ADMIN_COOKIE_NAME,
   getClientCookie,
   removeClientCookie,
   SessionUser,
 } from "@/lib/auth";
+
+// Modals & Clinical Subcomponents
+import DentalChartOdontogram from "@/components/admin/DentalChartOdontogram";
+import PrescriptionGeneratorModal from "@/components/admin/PrescriptionGeneratorModal";
+import LiveWaitingRoomQueue from "@/components/admin/LiveWaitingRoomQueue";
+import BillingPOSModal from "@/components/admin/BillingPOSModal";
+import CashRegisterSummary from "@/components/admin/CashRegisterSummary";
+import TreatmentPlanManager from "@/components/admin/TreatmentPlanManager";
+
+type AdminTab =
+  | "receptionist"
+  | "doctor"
+  | "appointments"
+  | "billing"
+  | "treatment_plans"
+  | "cash_register"
+  | "analytics"
+  | "followups"
+  | "inquiries";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -50,20 +87,28 @@ export default function AdminPage() {
   // Data states
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);
+  const [queue, setQueue] = useState<QueueToken[]>([]);
+  const [treatmentPlans, setTreatmentPlans] = useState<TreatmentPlan[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [cashEntries, setCashEntries] = useState<CashRegisterEntry[]>([]);
   const [stats, setStats] = useState<ClinicStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [followupSuccess, setFollowupSuccess] = useState<string>("");
 
-  // Filters & Tabs
+  // Tabs & Filters
+  const [activeTab, setActiveTab] = useState<AdminTab>("receptionist");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [dateFilter, setDateFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"appointments" | "analytics" | "followups" | "inquiries">(
-    "appointments"
-  );
 
-  // Modal State
+  // Modals
+  const [isRxModalOpen, setIsRxModalOpen] = useState(false);
+  const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
+  const [selectedBookingForModal, setSelectedBookingForModal] = useState<Booking | null>(null);
+  const [selectedTokenForModal, setSelectedTokenForModal] = useState<QueueToken | null>(null);
+
+  // Action Modals (Status, Reschedule, Notes)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [actionType, setActionType] = useState<"STATUS" | "NOTES" | "RESCHEDULE" | null>(null);
   const [newStatus, setNewStatus] = useState<BookingStatus>("CONFIRMED");
@@ -113,7 +158,6 @@ export default function AdminPage() {
           return;
         }
 
-        // Unauthenticated -> redirect to login
         router.replace("/admin/login");
       } catch (e) {
         console.error(e);
@@ -135,6 +179,22 @@ export default function AdminPage() {
       const dataI = await resI.json();
       if (dataI.success) setInquiries(dataI.inquiries);
 
+      const resQ = await fetch("/api/admin/queue");
+      const dataQ = await resQ.json();
+      if (dataQ.success) setQueue(dataQ.queue);
+
+      const resC = await fetch("/api/admin/clinical?type=treatment_plan");
+      const dataC = await resC.json();
+      if (dataC.success) setTreatmentPlans(dataC.treatmentPlans || []);
+
+      const resInv = await fetch("/api/admin/billing");
+      const dataInv = await resInv.json();
+      if (dataInv.success) setInvoices(dataInv.invoices || []);
+
+      const resCash = await fetch("/api/admin/billing?type=cash_register");
+      const dataCash = await resCash.json();
+      if (dataCash.success) setCashEntries(dataCash.entries || []);
+
       const resS = await fetch("/api/admin/stats");
       const dataS = await resS.json();
       if (dataS.success) setStats(dataS.stats);
@@ -150,18 +210,6 @@ export default function AdminPage() {
       fetchData();
     }
   }, [isAuthenticated]);
-
-  // Global Escape key listener to close modals
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setSelectedBooking(null);
-        setActionType(null);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -191,7 +239,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (data.success) {
         setFollowupSuccess(
-          `Follow-up email (${type === "REMINDER_24H" ? "24h Reminder" : "Post-Care"}) dispatched to ${booking.patientEmail} via info@thewebvale.com!`
+          `Follow-up email (${type === "REMINDER_24H" ? "24h Reminder" : "Post-Care"}) dispatched to ${booking.patientEmail}!`
         );
         setTimeout(() => setFollowupSuccess(""), 6000);
       }
@@ -202,619 +250,344 @@ export default function AdminPage() {
     }
   };
 
-  // Filter Bookings
+  // Status / Action Submit
+  const handleActionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBooking) return;
+    setActionLoading(true);
+
+    try {
+      const payload: any = {};
+      if (actionType === "STATUS") {
+        payload.status = newStatus;
+        if (newStatus === "CANCELLED") {
+          payload.cancellationReason = cancellationReason;
+        }
+      } else if (actionType === "NOTES") {
+        payload.doctorNotes = doctorNotes;
+        payload.prescription = prescription;
+      } else if (actionType === "RESCHEDULE") {
+        payload.appointmentDate = rescheduleDate;
+        payload.timeSlot = rescheduleSlot;
+        payload.status = "RESCHEDULED";
+      }
+
+      const res = await fetch(`/api/bookings/${selectedBooking.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setSelectedBooking(null);
+        setActionType(null);
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const filteredBookings = bookings.filter((b) => {
     if (statusFilter !== "ALL" && b.status !== statusFilter) return false;
     if (dateFilter === "TODAY" && b.appointmentDate !== todayStr) return false;
     if (dateFilter === "TOMORROW" && b.appointmentDate !== tomorrowStr) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      return (
+      const match =
         b.patientName.toLowerCase().includes(q) ||
         b.patientPhone.includes(q) ||
         b.patientEmail.toLowerCase().includes(q) ||
         b.refNumber.toLowerCase().includes(q) ||
-        b.serviceName.toLowerCase().includes(q)
-      );
+        b.serviceName.toLowerCase().includes(q);
+      if (!match) return false;
     }
     return true;
   });
 
-  const handleQuickStatusChange = async (booking: Booking, status: BookingStatus) => {
-    setActionLoading(true);
-    try {
-      const res = await fetch(`/api/bookings/${booking.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        fetchData();
-        setSelectedBooking(null);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleSaveModalAction = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!selectedBooking) return;
-    setActionLoading(true);
-
-    try {
-      let body: any = {};
-      if (actionType === "STATUS") {
-        body = {
-          status: newStatus,
-          doctorNotes: doctorNotes || selectedBooking.doctorNotes,
-          prescription: prescription || selectedBooking.prescription,
-          cancellationReason: newStatus === "CANCELLED" ? cancellationReason : undefined,
-        };
-      } else if (actionType === "NOTES") {
-        body = { doctorNotes, prescription };
-      } else if (actionType === "RESCHEDULE") {
-        body = {
-          appointmentDate: rescheduleDate,
-          timeSlot: rescheduleSlot,
-          status: "RESCHEDULED",
-        };
-      }
-
-      const res = await fetch(`/api/bookings/${selectedBooking.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        fetchData();
-        setSelectedBooking(null);
-        setActionType(null);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const exportToCsv = () => {
-    const headers = [
-      "Ref Number",
-      "Patient Name",
-      "Phone",
-      "Email",
-      "Age",
-      "Gender",
-      "Service",
-      "Category",
-      "Date",
-      "Time Slot",
-      "Status",
-      "Doctor Notes",
-      "Prescription",
-      "Created At",
-    ];
-
-    const rows = bookings.map((b) => [
-      b.refNumber,
-      `"${b.patientName}"`,
-      `"${b.patientPhone}"`,
-      `"${b.patientEmail}"`,
-      b.age || "",
-      b.gender || "",
-      `"${b.serviceName}"`,
-      `"${b.category}"`,
-      b.appointmentDate,
-      `"${b.timeSlot}"`,
-      b.status,
-      `"${(b.doctorNotes || "").replace(/"/g, '""')}"`,
-      `"${(b.prescription || "").replace(/"/g, '""')}"`,
-      b.createdAt,
-    ]);
-
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `Amulyam_Bookings_${todayStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   if (authChecking) {
     return (
-      <div className="py-24 text-center text-sm text-[#888] flex items-center justify-center gap-2">
-        <RefreshCw className="w-4 h-4 animate-spin text-[#C9A227]" />
-        <span>Authenticating admin access...</span>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-amber-400">
+        <div className="flex flex-col items-center gap-3">
+          <span className="animate-spin text-3xl">✦</span>
+          <p className="text-sm font-semibold tracking-wider uppercase">Authenticating Clinic Terminal...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="py-8 md:py-12 bg-[#FAF8F5] dark:bg-[#0F0E0D] min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header Profile Bar */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#C9A227] bg-[#C9A227]/10 px-3 py-1 rounded-full flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Clinic Control Suite
-              </span>
-              <span className="text-xs text-[#888]">{adminUser?.name} ({adminUser?.email})</span>
+    <div className="min-h-screen bg-slate-950 text-slate-100 pb-20 pt-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        {/* Top App Header */}
+        <div className="bg-slate-900/90 backdrop-blur-xl border border-amber-500/30 rounded-2xl p-4 sm:p-6 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg">
+              ADS
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1A1A1A] dark:text-[#F8F6F2] mt-1">
-              Amulyam Dental Studio Admin Management
-            </h1>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">Amulyam Clinic OS</h1>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
+                  Live Clinic ERP
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Dr. Shreya Nidhi's Dental Studio • Awadhpuri, Bhopal
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Quick Role & Portal Switcher Strip */}
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={fetchData}
-              disabled={loading}
-              className="px-4 py-2 rounded-xl bg-white dark:bg-[#1C1A17] border border-[#C9A227]/30 text-xs font-semibold text-[#1A1A1A] dark:text-white flex items-center gap-1.5 hover:bg-[#FAF8F5] shadow-sm transition-all cursor-pointer"
+              onClick={() => setActiveTab("receptionist")}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                activeTab === "receptionist"
+                  ? "bg-amber-500 text-slate-950 shadow-md scale-105"
+                  : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+              }`}
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-[#C9A227] ${loading ? "animate-spin" : ""}`} />
-              <span>Refresh</span>
+              <Users className="w-3.5 h-3.5" />
+              <span>👩‍💼 Frontdesk &amp; Queue</span>
             </button>
 
             <button
-              onClick={exportToCsv}
-              className="px-4 py-2 rounded-xl bg-white dark:bg-[#1C1A17] border border-[#C9A227]/30 text-xs font-semibold text-[#1A1A1A] dark:text-white flex items-center gap-1.5 hover:bg-[#FAF8F5] shadow-sm transition-all cursor-pointer"
+              onClick={() => setActiveTab("doctor")}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                activeTab === "doctor"
+                  ? "bg-amber-500 text-slate-950 shadow-md scale-105"
+                  : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+              }`}
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-green-600" />
-              <span>Export CSV</span>
+              <Stethoscope className="w-3.5 h-3.5" />
+              <span>👨‍⚕️ Doctor Odontogram</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedBookingForModal(bookings[0] || null);
+                setIsRxModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-xs font-bold transition"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>+ Issue E-Rx</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedBookingForModal(bookings[0] || null);
+                setIsBillingModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 text-xs font-bold transition"
+            >
+              <Receipt className="w-3.5 h-3.5" />
+              <span>+ POS Billing</span>
             </button>
 
             <button
               onClick={handleLogout}
-              className="p-2 rounded-xl border border-red-200 text-red-600 dark:border-red-900/50 hover:bg-red-50 text-xs font-bold flex items-center gap-1 cursor-pointer"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 transition"
+              title="Logout"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Logout</span>
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
 
+        {/* Global Alert Notification Banner */}
         {followupSuccess && (
-          <div className="mb-6 p-4 rounded-2xl bg-green-50 dark:bg-green-950/40 border border-green-200 text-green-800 dark:text-green-300 text-xs sm:text-sm font-semibold flex items-center gap-2 animate-fadeIn">
-            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center justify-between animate-in fade-in">
             <span>{followupSuccess}</span>
+            <button onClick={() => setFollowupSuccess("")}>✕</button>
           </div>
         )}
 
-        {/* KPI Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-          <div className="p-4 rounded-2xl bg-white dark:bg-[#181715] border border-[#C9A227]/20 shadow-sm">
-            <span className="text-[11px] uppercase tracking-wider text-[#8A8175] block font-semibold">
-              Total Appointments
-            </span>
-            <div className="text-2xl font-black text-[#1A1A1A] dark:text-white mt-1">
-              {stats?.totalBookings || bookings.length}
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-white dark:bg-[#181715] border border-[#C9A227]/20 shadow-sm">
-            <span className="text-[11px] uppercase tracking-wider text-[#8A8175] block font-semibold">
-              Today's Volume
-            </span>
-            <div className="text-2xl font-black text-[#C9A227] mt-1">
-              {stats?.todayBookings || 0}
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-white dark:bg-[#181715] border border-[#C9A227]/20 shadow-sm">
-            <span className="text-[11px] uppercase tracking-wider text-amber-600 block font-semibold">
-              Pending Actions
-            </span>
-            <div className="text-2xl font-black text-amber-600 mt-1">
-              {stats?.pendingBookings || 0}
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-white dark:bg-[#181715] border border-[#C9A227]/20 shadow-sm">
-            <span className="text-[11px] uppercase tracking-wider text-green-600 block font-semibold">
-              Confirmed Visits
-            </span>
-            <div className="text-2xl font-black text-green-600 mt-1">
-              {stats?.confirmedBookings || 0}
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-white dark:bg-[#181715] border border-[#C9A227]/20 shadow-sm col-span-2 sm:col-span-1">
-            <span className="text-[11px] uppercase tracking-wider text-blue-600 block font-semibold">
-              Completed Care
-            </span>
-            <div className="text-2xl font-black text-blue-600 mt-1">
-              {stats?.completedBookings || 0}
-            </div>
-          </div>
-        </div>
-
         {/* Navigation Tabs */}
-        <div className="flex gap-2 border-b border-[#C9A227]/20 pb-3 mb-6 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab("appointments")}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap transition-all ${
-              activeTab === "appointments"
-                ? "bg-[#C9A227] text-white shadow-md"
-                : "bg-white dark:bg-[#1C1A17] text-[#666] dark:text-[#AAA] border border-[#C9A227]/20"
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Appointments Board ({bookings.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("analytics")}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap transition-all ${
-              activeTab === "analytics"
-                ? "bg-[#C9A227] text-white shadow-md"
-                : "bg-white dark:bg-[#1C1A17] text-[#666] dark:text-[#AAA] border border-[#C9A227]/20"
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span>Analytics &amp; Revenue</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("followups")}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap transition-all ${
-              activeTab === "followups"
-                ? "bg-[#C9A227] text-white shadow-md"
-                : "bg-white dark:bg-[#1C1A17] text-[#666] dark:text-[#AAA] border border-[#C9A227]/20"
-            }`}
-          >
-            <Bell className="w-4 h-4" />
-            <span>Email Follow-ups (SMTP: info@thewebvale.com)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("inquiries")}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap transition-all ${
-              activeTab === "inquiries"
-                ? "bg-[#C9A227] text-white shadow-md"
-                : "bg-white dark:bg-[#1C1A17] text-[#666] dark:text-[#AAA] border border-[#C9A227]/20"
-            }`}
-          >
-            <Inbox className="w-4 h-4" />
-            <span>Inquiries ({inquiries.length})</span>
-          </button>
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar border-b border-slate-800">
+          {[
+            { id: "receptionist", label: "Waiting Room & Queue", icon: Users, count: queue.filter((q) => q.status === "WAITING" || q.status === "IN_CHAIR").length },
+            { id: "doctor", label: "Tooth Odontogram Chart", icon: Stethoscope },
+            { id: "appointments", label: "All Appointments", icon: Calendar, count: bookings.length },
+            { id: "billing", label: "Invoices & Billing", icon: Receipt, count: invoices.length },
+            { id: "treatment_plans", label: "Treatment Plans", icon: Layers, count: treatmentPlans.length },
+            { id: "cash_register", label: "EOD Cash Reconciliation", icon: Banknote },
+            { id: "analytics", label: "Analytics & KPIs", icon: BarChart3 },
+            { id: "inquiries", label: "Web Inquiries", icon: Inbox, count: inquiries.length },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as AdminTab)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                  isActive
+                    ? "bg-slate-800 text-amber-400 border border-amber-500/30 shadow-lg"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+                {typeof tab.count === "number" && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${isActive ? "bg-amber-500 text-slate-950" : "bg-slate-800 text-slate-400"}`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {/* 1. APPOINTMENTS TAB */}
+        {/* ----------------- TAB 1: RECEPTIONIST WAITING ROOM QUEUE ----------------- */}
+        {activeTab === "receptionist" && (
+          <LiveWaitingRoomQueue
+            queue={queue}
+            onRefresh={fetchData}
+            onOpenBilling={(token) => {
+              setSelectedTokenForModal(token);
+              setIsBillingModalOpen(true);
+            }}
+            onOpenDentalChart={(token) => {
+              setSelectedTokenForModal(token);
+              setActiveTab("doctor");
+            }}
+          />
+        )}
+
+        {/* ----------------- TAB 2: DOCTOR CLINICAL ODONTOGRAM ----------------- */}
+        {activeTab === "doctor" && (
+          <DentalChartOdontogram
+            patientName={selectedBooking?.patientName || "Aarav Sharma"}
+            patientEmail={selectedBooking?.patientEmail || "aarav.sharma@example.com"}
+          />
+        )}
+
+        {/* ----------------- TAB 3: MASTER APPOINTMENTS LIST ----------------- */}
         {activeTab === "appointments" && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Filter Bar */}
-            <div className="bg-white dark:bg-[#181715] p-4 sm:p-5 rounded-2xl border border-[#C9A227]/20 shadow-sm flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
-              <div className="flex gap-1.5 overflow-x-auto pb-1">
-                {["ALL", "PENDING", "CONFIRMED", "RESCHEDULED", "COMPLETED", "CANCELLED"].map(
-                  (st) => (
-                    <button
-                      key={st}
-                      onClick={() => setStatusFilter(st)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                        statusFilter === st
-                          ? "bg-[#C9A227] text-white shadow"
-                          : "bg-[#FAF8F5] dark:bg-[#26231E] text-[#666] dark:text-[#AAA] hover:text-[#C9A227]"
-                      }`}
-                    >
-                      {st}
-                    </button>
-                  )
-                )}
+            <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-1">
+                <Search className="w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by patient name, phone, email, or ref ID..."
+                  className="bg-transparent border-none text-xs sm:text-sm text-white focus:outline-none w-full placeholder-slate-500"
+                />
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="flex items-center gap-2">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="RESCHEDULED">Rescheduled</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value)}
-                  className="px-3 py-2 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-xs font-medium focus:outline-none focus:border-[#C9A227]"
+                  className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none"
                 >
                   <option value="ALL">All Dates</option>
-                  <option value="TODAY">Today's Appointments</option>
-                  <option value="TOMORROW">Tomorrow's Appointments</option>
+                  <option value="TODAY">Today Only</option>
+                  <option value="TOMORROW">Tomorrow Only</option>
                 </select>
-
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-[#888] absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    placeholder="Search patient, phone, ref..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full sm:w-56 pl-8 pr-3 py-2 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-xs focus:outline-none focus:border-[#C9A227]"
-                  />
-                </div>
               </div>
             </div>
 
-            {/* Table */}
-            <div className="bg-white dark:bg-[#181715] rounded-3xl border border-[#C9A227]/25 shadow-xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-[#FAF8F5] dark:bg-[#121110] border-b border-[#E8E0D2] dark:border-[#26231E] text-[11px] font-extrabold uppercase tracking-wider text-[#8A8175]">
-                      <th className="py-3.5 px-4">Ref &amp; Status</th>
-                      <th className="py-3.5 px-4">Patient Details</th>
-                      <th className="py-3.5 px-4">Treatment</th>
-                      <th className="py-3.5 px-4">Date &amp; Slot</th>
-                      <th className="py-3.5 px-4">Notes &amp; Rx</th>
-                      <th className="py-3.5 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#FAF8F5] dark:divide-[#26231E] text-xs sm:text-sm">
-                    {filteredBookings.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-12 text-center text-[#888]">
-                          No appointments found matching the current filters.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredBookings.map((b) => {
-                        const whatsappLink = `https://wa.me/${b.patientPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                          `Hello ${b.patientName}, this is Amulyam Dental Studio regarding your appointment for ${b.serviceName} on ${b.appointmentDate} at ${b.timeSlot}.`
-                        )}`;
-
-                        return (
-                          <tr
-                            key={b.id}
-                            className="hover:bg-[#FAF8F5]/80 dark:hover:bg-[#1F1D1A]/80 transition-colors"
-                          >
-                            <td className="py-4 px-4 align-top">
-                              <Link
-                                href={`/booking-confirmation/${b.refNumber}`}
-                                target="_blank"
-                                className="font-mono font-bold text-[#C9A227] hover:underline block"
-                              >
-                                {b.refNumber}
-                              </Link>
-                              <div className="mt-1">
-                                <span
-                                  className={`inline-block text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
-                                    b.status === "CONFIRMED"
-                                      ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
-                                      : b.status === "COMPLETED"
-                                      ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
-                                      : b.status === "CANCELLED"
-                                      ? "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300"
-                                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300"
-                                  }`}
-                                >
-                                  {b.status}
-                                </span>
-                              </div>
-                            </td>
-
-                            <td className="py-4 px-4 align-top">
-                              <div className="font-bold text-[#1A1A1A] dark:text-white">
-                                {b.patientName} {b.age ? `(${b.age}y, ${b.gender || ""})` : ""}
-                              </div>
-                              <div className="text-xs text-[#666] dark:text-[#AAA] mt-0.5 space-y-0.5">
-                                <a
-                                  href={`tel:${b.patientPhone}`}
-                                  className="text-blue-600 dark:text-blue-400 hover:underline block font-medium"
-                                >
-                                  {b.patientPhone}
-                                </a>
-                                <span className="block truncate max-w-[150px]">{b.patientEmail}</span>
-                              </div>
-                            </td>
-
-                            <td className="py-4 px-4 align-top">
-                              <div className="font-semibold text-[#1A1A1A] dark:text-white">
-                                {b.serviceName}
-                              </div>
-                              <span className="text-[11px] text-[#C9A227]">{b.category}</span>
-                            </td>
-
-                            <td className="py-4 px-4 align-top whitespace-nowrap">
-                              <div className="font-bold text-[#1A1A1A] dark:text-white">
-                                {b.appointmentDate}
-                              </div>
-                              <span className="text-xs text-green-700 dark:text-green-400 font-semibold block">
-                                {b.timeSlot}
-                              </span>
-                            </td>
-
-                            <td className="py-4 px-4 align-top max-w-xs">
-                              {b.notes && (
-                                <p className="text-[11px] text-[#666] dark:text-[#AAA] line-clamp-2 italic mb-1">
-                                  "{b.notes}"
-                                </p>
-                              )}
-                              {b.doctorNotes && (
-                                <span className="text-[10px] text-[#C9A227] block font-semibold">
-                                  👨‍⚕️ {b.doctorNotes}
-                                </span>
-                              )}
-                            </td>
-
-                            <td className="py-4 px-4 align-top text-right whitespace-nowrap">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {b.status === "PENDING" && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleQuickStatusChange(b, "CONFIRMED")}
-                                    className="p-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white shadow text-xs"
-                                    title="Confirm Booking"
-                                  >
-                                    <Check className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-
-                                <a
-                                  href={whatsappLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-1.5 rounded-lg bg-[#25D366] hover:bg-[#20BA5A] text-white shadow text-xs"
-                                  title="Send WhatsApp Message"
-                                >
-                                  <MessageCircle className="w-3.5 h-3.5" />
-                                </a>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedBooking(b);
-                                    setActionType("STATUS");
-                                    setNewStatus(b.status);
-                                    setDoctorNotes(b.doctorNotes || "");
-                                    setPrescription(b.prescription || "");
-                                    setRescheduleDate(b.appointmentDate);
-                                    setRescheduleSlot(b.timeSlot);
-                                  }}
-                                  className="px-2.5 py-1.5 rounded-lg bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-xs transition-all shadow cursor-pointer"
-                                >
-                                  Manage
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 2. ANALYTICS & DASHBOARDS TAB */}
-        {activeTab === "analytics" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white dark:bg-[#181715] p-6 rounded-3xl border border-[#C9A227]/25 shadow-lg space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase font-bold text-[#888]">Monthly Revenue Estimate</span>
-                  <TrendingUp className="w-4 h-4 text-green-500" />
-                </div>
-                <div className="text-3xl font-black text-[#C9A227]">
-                  ₹{(bookings.length * 3200).toLocaleString("en-IN")}
-                </div>
-                <p className="text-xs text-[#888] leading-relaxed">
-                  Based on average treatment value (RCT, Implants &amp; Aligners mix).
-                </p>
-              </div>
-
-              <div className="bg-white dark:bg-[#181715] p-6 rounded-3xl border border-[#C9A227]/25 shadow-lg space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase font-bold text-[#888]">Patient Retention Rate</span>
-                  <Activity className="w-4 h-4 text-[#C9A227]" />
-                </div>
-                <div className="text-3xl font-black text-[#1A1A1A] dark:text-white">
-                  94.8%
-                </div>
-                <p className="text-xs text-[#888] leading-relaxed">
-                  High patient satisfaction and return visits for regular scaling &amp; preventive care.
-                </p>
-              </div>
-
-              <div className="bg-white dark:bg-[#181715] p-6 rounded-3xl border border-[#C9A227]/25 shadow-lg space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase font-bold text-[#888]">Google Review Average</span>
-                  <Sparkles className="w-4 h-4 text-[#C9A227]" />
-                </div>
-                <div className="text-3xl font-black text-green-600 dark:text-green-400">
-                  5.0 ★
-                </div>
-                <p className="text-xs text-[#888] leading-relaxed">
-                  140+ 5-star patient reviews in Awadhpuri, Bhopal.
-                </p>
-              </div>
-            </div>
-
-            {/* Treatment Distribution Visual */}
-            <div className="bg-white dark:bg-[#181715] p-6 rounded-3xl border border-[#C9A227]/25 shadow-lg space-y-4">
-              <h3 className="text-lg font-bold text-[#1A1A1A] dark:text-white">
-                Treatment Demand Distribution
-              </h3>
-              <div className="space-y-3">
-                {[
-                  { name: "Root Canal Treatment (Endodontics)", pct: 35, count: "35%", color: "bg-[#C9A227]" },
-                  { name: "Dental Implants & Prosthetics", pct: 25, count: "25%", color: "bg-[#DDB83C]" },
-                  { name: "Teeth Whitening & Smile Design", pct: 20, count: "20%", color: "bg-amber-500" },
-                  { name: "Clear Aligners & Orthodontics", pct: 12, count: "12%", color: "bg-blue-500" },
-                  { name: "Ultrasonic Scaling & Preventive", pct: 8, count: "8%", color: "bg-green-500" },
-                ].map((item, i) => (
-                  <div key={i} className="space-y-1">
-                    <div className="flex justify-between text-xs font-semibold">
-                      <span className="text-[#1A1A1A] dark:text-[#DDD]">{item.name}</span>
-                      <span className="text-[#C9A227]">{item.count}</span>
-                    </div>
-                    <div className="h-2.5 w-full bg-[#FAF8F5] dark:bg-[#26231E] rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${item.color} rounded-full transition-all duration-500`}
-                        style={{ width: `${item.pct}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 3. EMAIL FOLLOW-UPS TAB */}
-        {activeTab === "followups" && (
-          <div className="bg-white dark:bg-[#181715] p-6 rounded-3xl border border-[#C9A227]/25 shadow-lg space-y-6">
-            <div>
-              <h2 className="text-lg font-bold text-[#1A1A1A] dark:text-white">
-                Automated &amp; 1-Click Patient Follow-ups
-              </h2>
-              <p className="text-xs text-[#888]">
-                Sender: <strong>info@thewebvale.com</strong> over secured SMTP (smtpout.secureserver.net).
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {bookings.map((b) => (
+            {/* Appointments Grid / Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredBookings.map((b) => (
                 <div
                   key={b.id}
-                  className="p-5 rounded-2xl bg-[#FAF8F5] dark:bg-[#121110] border border-[#E8E0D2] dark:border-[#332F28] space-y-3"
+                  className="bg-slate-900/90 border border-slate-800 hover:border-amber-500/40 rounded-2xl p-5 space-y-3 transition shadow-lg flex flex-col justify-between"
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="font-bold text-sm text-[#1A1A1A] dark:text-white block">
-                        {b.patientName}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                        {b.refNumber}
                       </span>
-                      <span className="text-xs text-[#888]">
-                        {b.serviceName} • {b.appointmentDate} ({b.timeSlot})
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                          b.status === "CONFIRMED"
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            : b.status === "PENDING"
+                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                            : b.status === "COMPLETED"
+                            ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                            : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                        }`}
+                      >
+                        {b.status}
                       </span>
                     </div>
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#C9A227]/20 text-[#C9A227]">
-                      {b.status}
-                    </span>
+
+                    <div>
+                      <h4 className="text-base font-bold text-white leading-snug">{b.patientName}</h4>
+                      <p className="text-xs text-amber-200/80 font-semibold">{b.serviceName}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 bg-slate-950/60 p-2.5 rounded-xl">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{b.appointmentDate}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{b.timeSlot}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 col-span-2">
+                        <Phone className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{b.patientPhone}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 pt-2 border-t border-[#E8E0D2] dark:border-[#26231E]">
-                    <button
-                      type="button"
-                      disabled={actionLoading}
-                      onClick={() => handleTriggerFollowUp(b, "REMINDER_24H")}
-                      className="px-3 py-1.5 rounded-xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-xs flex items-center gap-1.5 shadow cursor-pointer disabled:opacity-50"
+                  {/* Actions */}
+                  <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2 text-xs">
+                    <a
+                      href={`https://wa.me/${b.patientPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                        `Namaste ${b.patientName}, this is Amulyam Dental Studio confirming your appointment for ${b.serviceName} on ${b.appointmentDate} at ${b.timeSlot}.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition"
+                      title="Send WhatsApp Message"
                     >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Send 24h Reminder Email</span>
+                      <MessageCircle className="w-4 h-4" />
+                    </a>
+
+                    <button
+                      onClick={() => handleTriggerFollowUp(b, "REMINDER_24H")}
+                      className="py-1.5 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-[11px] flex items-center gap-1 transition"
+                    >
+                      <Bell className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Reminder</span>
                     </button>
 
                     <button
-                      type="button"
-                      disabled={actionLoading}
-                      onClick={() => handleTriggerFollowUp(b, "POST_TREATMENT_CARE")}
-                      className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#1C1A17] border border-[#C9A227]/40 text-xs font-semibold text-[#1A1A1A] dark:text-white flex items-center gap-1.5 hover:bg-[#FAF8F5] cursor-pointer disabled:opacity-50"
+                      onClick={() => {
+                        setSelectedBooking(b);
+                        setActionType("STATUS");
+                        setNewStatus(b.status);
+                      }}
+                      className="py-1.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                      <span>Send Post-Care Email</span>
+                      Manage
                     </button>
                   </div>
                 </div>
@@ -823,251 +596,209 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* 4. INQUIRIES TAB */}
-        {activeTab === "inquiries" && (
-          <div className="bg-white dark:bg-[#181715] rounded-3xl border border-[#C9A227]/25 shadow-xl p-6">
-            <h2 className="text-xl font-bold text-[#1A1A1A] dark:text-white mb-4">
-              Website Contact Inquiries
-            </h2>
-
-            <div className="space-y-4">
-              {inquiries.length === 0 ? (
-                <p className="text-center py-12 text-sm text-[#888]">No inquiries received yet.</p>
-              ) : (
-                inquiries.map((inq) => (
-                  <div
-                    key={inq.id}
-                    className="p-5 rounded-2xl bg-[#FAF8F5] dark:bg-[#121110] border border-[#E8E0D2] dark:border-[#332F28] space-y-2"
-                  >
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                      <div>
-                        <span className="font-bold text-sm text-[#1A1A1A] dark:text-white">
-                          {inq.firstName} {inq.lastName}
-                        </span>
-                        <span className="text-xs text-[#C9A227] ml-2">
-                          ({inq.serviceOfInterest || "General"})
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-[#888]">
-                        {new Date(inq.createdAt).toLocaleString()}
-                      </span>
-                    </div>
-
-                    <p className="text-xs sm:text-sm text-[#444] dark:text-[#CCC] bg-white dark:bg-[#181715] p-3 rounded-xl border border-[#E5DFD5] dark:border-[#26231E]">
-                      {inq.message}
-                    </p>
-
-                    <div className="flex items-center gap-4 text-xs text-[#888] pt-1">
-                      <a href={`tel:${inq.phone}`} className="text-blue-600 dark:text-blue-400 font-medium">
-                        📞 {inq.phone}
-                      </a>
-                      <a href={`mailto:${inq.email}`} className="hover:underline">
-                        ✉️ {inq.email}
-                      </a>
-                    </div>
-                  </div>
-                ))
-              )}
+        {/* ----------------- TAB 4: BILLING & INVOICES ----------------- */}
+        {activeTab === "billing" && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+              <div>
+                <h4 className="text-sm font-bold text-white">Clinical Invoices &amp; Billing History</h4>
+                <p className="text-xs text-slate-400">Total generated invoices and outstanding balances</p>
+              </div>
+              <button
+                onClick={() => setIsBillingModalOpen(true)}
+                className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition"
+              >
+                + New Invoice
+              </button>
             </div>
+
+            <div className="bg-slate-900/80 rounded-2xl border border-slate-800 p-4 overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400">
+                    <th className="py-2.5 px-3">Invoice #</th>
+                    <th className="py-2.5 px-3">Patient</th>
+                    <th className="py-2.5 px-3">Date</th>
+                    <th className="py-2.5 px-3">Grand Total</th>
+                    <th className="py-2.5 px-3">Paid</th>
+                    <th className="py-2.5 px-3">Balance</th>
+                    <th className="py-2.5 px-3">Payment Mode</th>
+                    <th className="py-2.5 px-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {invoices.map((inv) => (
+                    <tr key={inv.id} className="hover:bg-slate-800/40">
+                      <td className="py-3 px-3 font-mono font-bold text-amber-300">{inv.invoiceNumber}</td>
+                      <td className="py-3 px-3 font-bold text-white">{inv.patientName}</td>
+                      <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">
+                        {new Date(inv.createdAt).toLocaleDateString("en-IN")}
+                      </td>
+                      <td className="py-3 px-3 font-mono font-bold text-white">₹{inv.grandTotal.toLocaleString("en-IN")}</td>
+                      <td className="py-3 px-3 font-mono text-emerald-400 font-bold">₹{inv.amountPaid.toLocaleString("en-IN")}</td>
+                      <td className="py-3 px-3 font-mono text-rose-400 font-bold">₹{inv.balanceDue.toLocaleString("en-IN")}</td>
+                      <td className="py-3 px-3 font-mono text-slate-300">{inv.paymentMethod}</td>
+                      <td className="py-3 px-3">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            inv.paymentStatus === "PAID"
+                              ? "bg-emerald-500/20 text-emerald-300"
+                              : "bg-amber-500/20 text-amber-300"
+                          }`}
+                        >
+                          {inv.paymentStatus}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ----------------- TAB 5: TREATMENT PLANS ----------------- */}
+        {activeTab === "treatment_plans" && (
+          <TreatmentPlanManager plans={treatmentPlans} onRefresh={fetchData} />
+        )}
+
+        {/* ----------------- TAB 6: CASH REGISTER RECONCILIATION ----------------- */}
+        {activeTab === "cash_register" && (
+          <CashRegisterSummary entries={cashEntries} onRefresh={fetchData} />
+        )}
+
+        {/* ----------------- TAB 7: ANALYTICS & KPIS ----------------- */}
+        {activeTab === "analytics" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-1">
+              <span className="text-xs text-slate-400">Total Bookings</span>
+              <p className="text-3xl font-black text-white font-mono">{bookings.length}</p>
+            </div>
+            <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-1">
+              <span className="text-xs text-slate-400">Today's Appointments</span>
+              <p className="text-3xl font-black text-amber-300 font-mono">
+                {bookings.filter((b) => b.appointmentDate === todayStr).length}
+              </p>
+            </div>
+            <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-1">
+              <span className="text-xs text-slate-400">Confirmed Patients</span>
+              <p className="text-3xl font-black text-emerald-400 font-mono">
+                {bookings.filter((b) => b.status === "CONFIRMED").length}
+              </p>
+            </div>
+            <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-1">
+              <span className="text-xs text-slate-400">Website Inquiries</span>
+              <p className="text-3xl font-black text-sky-400 font-mono">{inquiries.length}</p>
+            </div>
+          </div>
+        )}
+
+        {/* ----------------- TAB 8: WEB INQUIRIES ----------------- */}
+        {activeTab === "inquiries" && (
+          <div className="space-y-3">
+            {inquiries.map((inq) => (
+              <div
+                key={inq.id}
+                className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-white text-sm">
+                    {inq.firstName} {inq.lastName}
+                  </h4>
+                  <span className="text-xs text-slate-400">
+                    {new Date(inq.createdAt).toLocaleDateString("en-IN")}
+                  </span>
+                </div>
+                <p className="text-xs text-amber-300 font-semibold">{inq.serviceOfInterest || inq.subject}</p>
+                <p className="text-xs text-slate-300 bg-slate-950 p-3 rounded-xl">"{inq.message}"</p>
+                <div className="flex items-center gap-4 text-xs text-slate-400 pt-2">
+                  <span>📞 {inq.phone}</span>
+                  <span>✉️ {inq.email}</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Modal Actions */}
+      {/* Prescription Generator Modal */}
+      <PrescriptionGeneratorModal
+        isOpen={isRxModalOpen}
+        onClose={() => setIsRxModalOpen(false)}
+        booking={selectedBookingForModal}
+        onSaved={() => {
+          setIsRxModalOpen(false);
+          fetchData();
+        }}
+      />
+
+      {/* Billing POS Modal */}
+      <BillingPOSModal
+        isOpen={isBillingModalOpen}
+        onClose={() => setIsBillingModalOpen(false)}
+        booking={selectedBookingForModal}
+        token={selectedTokenForModal}
+        onSaved={() => {
+          setIsBillingModalOpen(false);
+          fetchData();
+        }}
+      />
+
+      {/* Manage Status / Action Modal */}
       {selectedBooking && actionType && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setSelectedBooking(null);
-              setActionType(null);
-            }
-          }}
-        >
-          <form
-            onSubmit={handleSaveModalAction}
-            className="bg-white dark:bg-[#181715] rounded-3xl border-2 border-[#C9A227]/40 shadow-2xl max-w-lg w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto"
-          >
-            <div className="flex justify-between items-center pb-3 border-b border-[#FAF8F5] dark:border-[#26231E]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+          <div className="bg-slate-900 border border-amber-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h4 className="text-base font-bold text-white">Manage: {selectedBooking.refNumber}</h4>
+              <button onClick={() => setSelectedBooking(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <form onSubmit={handleActionSubmit} className="space-y-4">
               <div>
-                <span className="text-xs uppercase tracking-wider font-bold text-[#C9A227]">
-                  Booking Action
-                </span>
-                <h3 className="text-lg font-bold text-[#1A1A1A] dark:text-white">
-                  {selectedBooking.patientName} ({selectedBooking.refNumber})
-                </h3>
+                <label className="block text-xs text-slate-300 font-semibold mb-1">Update Status</label>
+                <select
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value as BookingStatus)}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                >
+                  <option value="PENDING">Pending</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedBooking(null);
-                  setActionType(null);
-                }}
-                className="text-gray-400 hover:text-white p-1 rounded-full cursor-pointer"
-                title="Close (Esc)"
-              >
-                ✕
-              </button>
-            </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setActionType("STATUS")}
-                className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  actionType === "STATUS"
-                    ? "bg-[#C9A227] text-white shadow"
-                    : "bg-[#FAF8F5] dark:bg-[#121110] text-[#777]"
-                }`}
-              >
-                Update Status
-              </button>
-              <button
-                type="button"
-                onClick={() => setActionType("RESCHEDULE")}
-                className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  actionType === "RESCHEDULE"
-                    ? "bg-[#C9A227] text-white shadow"
-                    : "bg-[#FAF8F5] dark:bg-[#121110] text-[#777]"
-                }`}
-              >
-                Reschedule
-              </button>
-              <button
-                type="button"
-                onClick={() => setActionType("NOTES")}
-                className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  actionType === "NOTES"
-                    ? "bg-[#C9A227] text-white shadow"
-                    : "bg-[#FAF8F5] dark:bg-[#121110] text-[#777]"
-                }`}
-              >
-                Doctor Notes
-              </button>
-            </div>
-
-            {actionType === "STATUS" && (
-              <div className="space-y-4">
+              {newStatus === "CANCELLED" && (
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#A39E93] mb-1.5">
-                    Transition Status To:
-                  </label>
-                  <select
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value as BookingStatus)}
-                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
-                  >
-                    <option value="PENDING">PENDING</option>
-                    <option value="CONFIRMED">CONFIRMED (Approve &amp; Send Email)</option>
-                    <option value="COMPLETED">COMPLETED (Treatment Finished)</option>
-                    <option value="CANCELLED">CANCELLED</option>
-                  </select>
-                </div>
-
-                {newStatus === "CANCELLED" && (
-                  <div>
-                    <label className="block text-xs font-bold text-[#A39E93] mb-1">
-                      Cancellation Reason
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Patient requested cancellation"
-                      value={cancellationReason}
-                      onChange={(e) => setCancellationReason(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] text-xs focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {actionType === "RESCHEDULE" && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-[#A39E93] mb-1">
-                    New Appointment Date
-                  </label>
-                  <input
-                    type="date"
-                    value={rescheduleDate}
-                    onChange={(e) => setRescheduleDate(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#A39E93] mb-1">
-                    New Time Slot
-                  </label>
-                  <select
-                    value={rescheduleSlot}
-                    onChange={(e) => setRescheduleSlot(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
-                  >
-                    {TIME_SLOTS.map((slot) => (
-                      <option key={slot} value={slot}>
-                        {slot}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {(actionType === "NOTES" || newStatus === "COMPLETED") && (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-[#A39E93] mb-1">
-                    Clinical Notes &amp; Findings
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="e.g. Tooth #36 obturated successfully. No pain reported."
-                    value={doctorNotes}
-                    onChange={(e) => setDoctorNotes(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] text-xs focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#A39E93] mb-1">
-                    Prescription / Care Instructions
-                  </label>
+                  <label className="block text-xs text-slate-300 font-semibold mb-1">Reason for Cancellation</label>
                   <input
                     type="text"
-                    placeholder="e.g. Tab Zerodol-SP BD x 3 days"
-                    value={prescription}
-                    onChange={(e) => setPrescription(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] text-xs focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
+                    value={cancellationReason}
+                    onChange={(e) => setCancellationReason(e.target.value)}
+                    placeholder="e.g. Patient rescheduled via phone"
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl p-2.5 text-xs text-white focus:outline-none"
                   />
                 </div>
+              )}
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedBooking(null)}
+                  className="flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition"
+                >
+                  {actionLoading ? "Saving..." : "Save Changes"}
+                </button>
               </div>
-            )}
-
-            <div className="flex justify-end gap-3 pt-3 border-t border-[#FAF8F5] dark:border-[#26231E]">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedBooking(null);
-                  setActionType(null);
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:text-gray-700 cursor-pointer"
-              >
-                Cancel (Esc)
-              </button>
-
-              <button
-                type="submit"
-                disabled={actionLoading}
-                className="px-6 py-2.5 rounded-xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-xs shadow-lg disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-              >
-                {actionLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                <span>{actionLoading ? "Updating..." : "Save & Dispatch Email Notification"}</span>
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       )}
     </div>

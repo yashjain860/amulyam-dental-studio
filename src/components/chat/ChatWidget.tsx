@@ -278,15 +278,13 @@ export default function ChatWidget() {
 
                       {/* Action buttons inside chat */}
                       <div className="pt-2 border-t border-slate-800 flex gap-2">
-                        <a
-                          href={msg.bookingConfirmation.passUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <Link
+                          href={`/booking-confirmation/${msg.bookingConfirmation.id}`}
                           className="flex-1 py-1.5 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] flex items-center justify-center gap-1.5 transition"
                         >
                           <QrCode className="w-3.5 h-3.5" />
                           <span>View Digital Pass</span>
-                        </a>
+                        </Link>
                       </div>
                     </div>
                   )}

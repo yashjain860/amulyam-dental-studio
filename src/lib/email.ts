@@ -87,7 +87,7 @@ export function generatePatientConfirmationEmail(booking: Booking): { subject: s
       </div>
 
       <div style="text-align: center; margin: 25px 0;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3005"}/booking-confirmation/${booking.refNumber}" class="btn">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://amulyam.thewebvale.com"}/booking-confirmation/${booking.refNumber}" class="btn">
           View Digital Appointment Pass & Calendar Sync →
         </a>
       </div>
