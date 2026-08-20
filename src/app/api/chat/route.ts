@@ -294,34 +294,104 @@ function formatToolDirectResponse(name: string, toolResult: any) {
   });
 }
 
-// Intelligent semantic fallback handler with live database tool execution
+// Intelligent semantic fallback handler with live database tool execution & conversational memory
 async function handleFallbackChat(messages: any[], debugErr?: string) {
-  const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
-  const allText = messages.map((m) => m.content).join(" ").toLowerCase();
-  const today = new Date().toISOString().split("T")[0];
+  const todayStr = new Date().toISOString().split("T")[0];
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content || "";
+  const lastMsgLower = lastUserMsg.toLowerCase().trim();
+  const allUserText = messages.filter((m) => m.role === "user").map((m) => m.content).join(" ");
+  const allTextLower = allUserText.toLowerCase();
 
-  // 1. Check if user provided time slot or wants to book
-  const timeMatch = lastMsg.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
-  const hasEmail = messages.some((m) => /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/.test(m.content));
-  const hasPhone = messages.some((m) => /\b\d{10}\b/.test(m.content.replace(/\D/g, "")));
+  // 1. Extract potential booking entities across entire conversation history
+  const emailMatch = allUserText.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  const foundEmail = emailMatch ? emailMatch[1] : null;
 
-  if (lastMsg.includes("10 am") || lastMsg.includes("11") || lastMsg.includes("12") || lastMsg.includes("1 pm") || lastMsg.includes("2 pm") || lastMsg.includes("3 pm") || lastMsg.includes("4 pm") || lastMsg.includes("5 pm") || lastMsg.includes("6 pm") || lastMsg.includes("7 pm")) {
+  const phoneMatch = allUserText.match(/(?:\+91[\s-]?)?([6-9]\d{9})/);
+  const foundPhone = phoneMatch ? phoneMatch[1] : null;
+
+  // Detect time slot
+  let foundTime: string | null = null;
+  const timeRegex = /(?:at\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/gi;
+  const timeMatches = Array.from(allTextLower.matchAll(timeRegex));
+  for (const m of timeMatches) {
+    const raw = m[1].trim();
+    if (raw.includes("am") || raw.includes("pm") || /^(?:10|11|12|1|2|3|4|5|6|7|8)$/.test(raw)) {
+      // Normalize to HH:MM AM/PM format
+      let formatted = raw.toUpperCase();
+      if (!formatted.includes("AM") && !formatted.includes("PM")) {
+        const hourNum = parseInt(raw);
+        formatted = hourNum >= 10 && hourNum <= 11 ? `${hourNum}:00 AM` : `${hourNum}:00 PM`;
+      } else if (!formatted.includes(":")) {
+        formatted = formatted.replace(/(AM|PM)/, ":00 $1").trim();
+      }
+      foundTime = formatted;
+    }
+  }
+
+  // Detect patient name from user turns that are not standard commands or slots
+  let foundName: string | null = null;
+  const nonCommandUserMsgs = messages
+    .filter((m) => m.role === "user")
+    .map((m) => m.content.trim())
+    .filter((txt) => {
+      const low = txt.toLowerCase();
+      if (low === "hi" || low === "hello" || low.includes("timing") || low.includes("avail") || low.includes("slot") || low.includes("book") || low.includes("@") || /^\d+$/.test(low)) {
+        return false;
+      }
+      return true;
+    });
+
+  if (nonCommandUserMsgs.length > 0) {
+    const candidateName = nonCommandUserMsgs[nonCommandUserMsgs.length - 1]
+      .replace(/(?:my name is|i am|name is|patient is|this is)\s*/i, "")
+      .replace(/[,.!\n].*$/, "")
+      .trim();
+    if (candidateName.length > 1 && candidateName.length < 40 && !candidateName.includes("http")) {
+      foundName = candidateName;
+    }
+  }
+
+  // 2. If all 5 fields are present across conversation -> Auto-execute booking!
+  if (foundName && foundEmail && foundPhone && foundTime) {
+    try {
+      const bookRes = await bookAppointmentTool({
+        patientName: foundName,
+        patientEmail: foundEmail,
+        patientPhone: foundPhone,
+        serviceName: "General Dental Consultation & Checkup",
+        appointmentDate: todayStr,
+        appointmentTime: foundTime
+      });
+
+      return formatToolDirectResponse("book_appointment", bookRes);
+    } catch (bookErr) {
+      console.error("Auto-fallback booking error:", bookErr);
+    }
+  }
+
+  // 3. If time slot is selected but missing personal details
+  if (foundTime && (!foundName || !foundEmail || !foundPhone)) {
+    const missing: string[] = [];
+    if (!foundName) missing.push("Full Name");
+    if (!foundEmail) missing.push("Email Address");
+    if (!foundPhone) missing.push("Phone Number (10 digits)");
+
     return NextResponse.json({
       role: "assistant",
-      content: `👍 Got it! You've selected **${messages[messages.length - 1].content.trim()}** for your visit today (${today}).\n\nTo confirm and generate your **Digital Boarding Pass**, please reply with your **Full Name, Email Address, and Phone Number**.`
+      content: `👍 Excellent! I have reserved your slot for **${foundTime}** today (**${todayStr}**).\n\n${foundName ? `Patient: **${foundName}**\n` : ""}To confirm and dispatch your **Digital Boarding Pass & QR Code**, please provide your:\n\n${missing.map((m) => `• **${m}**`).join("\n")}`
     });
   }
 
-  // 2. Availability / Slots query (handles typos like "availablity", "slots", "today", "tomorrow")
+  // 4. Availability / Slots query (handles typos like "availablity", "slots", "today", "tomorrow")
   if (
-    lastMsg.includes("avail") ||
-    lastMsg.includes("slot") ||
-    lastMsg.includes("open") ||
-    lastMsg.includes("today") ||
-    lastMsg.includes("tomorrow") ||
-    lastMsg.includes("time")
+    lastMsgLower.includes("avail") ||
+    lastMsgLower.includes("slot") ||
+    lastMsgLower.includes("open") ||
+    lastMsgLower.includes("today") ||
+    lastMsgLower.includes("tomorrow") ||
+    lastMsgLower.includes("schedule")
   ) {
-    const isTomorrow = lastMsg.includes("tomorrow");
+    const isTomorrow = lastMsgLower.includes("tomorrow");
     const targetDate = new Date();
     if (isTomorrow) targetDate.setDate(targetDate.getDate() + 1);
     const dateStr = targetDate.toISOString().split("T")[0];
@@ -331,37 +401,38 @@ async function handleFallbackChat(messages: any[], debugErr?: string) {
 
     return NextResponse.json({
       role: "assistant",
-      content: `📅 **Doctor Availability for ${isTomorrow ? "Tomorrow" : "Today"} (${dateStr}):**\n\nDr. Shreya Nidhi has **${slotData.availableSlotsCount} available slots**:\n\n${available.slice(0, 8).map((t) => `• **${t}** (Available)`).join("\n")}\n\nWhich time works best for you? Reply with your preferred slot and name!`
+      content: `📅 **Doctor Availability for ${isTomorrow ? "Tomorrow" : "Today"} (${dateStr}):**\n\nDr. Shreya Nidhi has **${slotData.availableSlotsCount} available slots**:\n\n${available.slice(0, 10).map((t) => `• **${t}**`).join("\n")}\n\nTo reserve a slot, reply with your preferred time (e.g. *"10:00 AM"*) and your name!`
     });
   }
 
-  // 3. Timings / Location
-  if (lastMsg.includes("timing") || lastMsg.includes("hour") || lastMsg.includes("address") || lastMsg.includes("where") || lastMsg.includes("location")) {
+  // 5. Timings & Location
+  if (lastMsgLower.includes("timing") || lastMsgLower.includes("hour") || lastMsgLower.includes("address") || lastMsgLower.includes("where") || lastMsgLower.includes("location")) {
     return NextResponse.json({
       role: "assistant",
-      content: `🏥 **Amulyam Dental Studio Info:**\n\n• **Doctor:** Dr. Shreya Nidhi (BDS, MDS - Endodontist)\n• **Hours:** Mon – Sat: 10:00 AM – 08:00 PM | Sun: 10:00 AM – 02:00 PM\n• **Location:** Shop 4-5, BDA Complex, Near D-Mart, Awadhpuri, Bhopal 462022\n• **WhatsApp Direct:** +91 97531 33330\n\nWould you like to check available appointment slots?`
+      content: `🏥 **Amulyam Dental Studio Timings & Location:**\n\n• **Monday – Saturday:** 10:00 AM – 08:00 PM\n• **Sunday:** 10:00 AM – 02:00 PM (Prior Appointment)\n• **Lead Doctor:** Dr. Shreya Nidhi (BDS, MDS - Endodontist)\n• **Location:** Shop 4-5, BDA Complex, Near D-Mart, Awadhpuri, Bhopal (MP 462022)\n• **WhatsApp Direct:** +91 97531 33330\n\nWould you like to check doctor availability for today?`
     });
   }
 
-  // 4. Treatment Pricing
-  if (lastMsg.includes("price") || lastMsg.includes("cost") || lastMsg.includes("fee") || lastMsg.includes("charge") || lastMsg.includes("rct") || lastMsg.includes("whitening") || lastMsg.includes("implant")) {
-    const pricing = await getTreatmentPricing(lastMsg);
+  // 6. Treatment Pricing
+  if (lastMsgLower.includes("price") || lastMsgLower.includes("cost") || lastMsgLower.includes("fee") || lastMsgLower.includes("charge") || lastMsgLower.includes("rct") || lastMsgLower.includes("whitening") || lastMsgLower.includes("implant") || lastMsgLower.includes("crown")) {
+    const pricing = await getTreatmentPricing(lastMsgLower);
     return NextResponse.json({
       role: "assistant",
-      content: `💰 **Treatment Pricing at Amulyam Dental Studio:**\n\n${pricing.treatments.slice(0, 5).map((t) => `• **${t.name}:** ${t.priceEstimate} (${t.duration})`).join("\n")}\n\n*Note: Exact quote provided during clinical examination by Dr. Shreya Nidhi.*\n\nWould you like to reserve a consultation?`
+      content: `💰 **Estimated Treatment Pricing at Amulyam Dental Studio:**\n\n${pricing.treatments.slice(0, 5).map((t) => `• **${t.name}:** ${t.priceEstimate} (*${t.duration}*)`).join("\n")}\n\n*Note: Final quote confirmed following RVG digital X-ray examination by Dr. Shreya Nidhi.*\n\nWould you like to reserve a consultation?`
     });
   }
 
-  // 5. Name or contact provided in active session
-  if (messages.length > 2) {
+  // 7. General conversational acknowledgment if user gave an answer
+  if (lastUserMsg && lastUserMsg.length > 2 && lastMsgLower !== "hi" && lastMsgLower !== "hello") {
     return NextResponse.json({
       role: "assistant",
-      content: `Thank you! I have noted **"${messages[messages.length - 1].content.trim()}"**.\n\nPlease share any remaining details (Name, Email, Phone, and Preferred Slot) so I can finalize your express booking!`
+      content: `Thank you! I have noted **"${lastUserMsg}"**.\n\nPlease share your preferred appointment time (e.g. *10:00 AM*), along with your Name, Email, and Phone number to generate your instant digital boarding pass.`
     });
   }
 
   return NextResponse.json({
     role: "assistant",
-    content: `👋 Welcome to **Amulyam Dental Studio**! I am Dr. Shreya Nidhi's AI Care Concierge.\n\nI can help you check **today's or tomorrow's doctor availability**, get treatment estimates, or **book an express appointment** with an instant digital pass.\n\nHow can I help you today?`
+    content: `👋 Welcome to **Amulyam Dental Studio**! I am Dr. Shreya Nidhi's AI Care Concierge.\n\nI can help you check **today's doctor availability**, get treatment estimates, or **book an express appointment** with an instant digital pass.\n\nHow can I help you today?`
   });
 }
+
