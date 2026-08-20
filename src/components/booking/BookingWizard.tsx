@@ -55,16 +55,6 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(parseInitialIds);
 
-  // Sync state if URL params change
-  useEffect(() => {
-    if (queryServices) {
-      const ids = queryServices.split(",").map((s) => s.trim()).filter(Boolean);
-      if (ids.length > 0) setSelectedServiceIds(ids);
-    } else if (queryService) {
-      setSelectedServiceIds([queryService]);
-    }
-  }, [queryServices, queryService]);
-
   // Date State (default to tomorrow)
   const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split("T")[0];
   const [appointmentDate, setAppointmentDate] = useState<string>(tomorrowStr);
@@ -84,32 +74,79 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
     preferredDoctor: LEAD_DOCTOR.name,
   });
 
+  // 1. Restore draft booking progress from sessionStorage on mount (especially after Google OAuth return)
+  useEffect(() => {
+    try {
+      const savedDraft = sessionStorage.getItem("amulyam_booking_draft");
+      if (savedDraft) {
+        const draft = JSON.parse(savedDraft);
+        if (draft.selectedServiceIds && draft.selectedServiceIds.length > 0 && !queryServices && !queryService) {
+          setSelectedServiceIds(draft.selectedServiceIds);
+        }
+        if (draft.appointmentDate) setAppointmentDate(draft.appointmentDate);
+        if (draft.selectedSlot) setSelectedSlot(draft.selectedSlot);
+        if (draft.formData) {
+          setFormData((prev) => ({
+            ...prev,
+            ...draft.formData,
+          }));
+        }
+        if (draft.step && draft.step >= 1 && draft.step <= 4) {
+          setStep(draft.step);
+        }
+      }
+    } catch (e) {}
+  }, [queryServices, queryService]);
+
+  // 2. Sync state if URL params change explicitly
+  useEffect(() => {
+    if (queryServices) {
+      const ids = queryServices.split(",").map((s) => s.trim()).filter(Boolean);
+      if (ids.length > 0) setSelectedServiceIds(ids);
+    } else if (queryService) {
+      setSelectedServiceIds([queryService]);
+    }
+  }, [queryServices, queryService]);
+
+  // 3. Auto-save booking progress draft to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        "amulyam_booking_draft",
+        JSON.stringify({
+          step,
+          selectedServiceIds,
+          appointmentDate,
+          selectedSlot,
+          formData,
+        })
+      );
+    } catch (e) {}
+  }, [step, selectedServiceIds, appointmentDate, selectedSlot, formData]);
+
   // Check active user session to auto-fill
   useEffect(() => {
     const checkUser = async () => {
       try {
+        let activeUser = null;
         const local = localStorage.getItem("amulyam_patient_session");
         if (local) {
-          const u = JSON.parse(local);
-          setCurrentUser(u);
-          setFormData((prev) => ({
-            ...prev,
-            patientName: prev.patientName || u.name || "",
-            patientEmail: prev.patientEmail || u.email || "",
-            patientPhone: prev.patientPhone || u.phone || "",
-          }));
-          return;
+          activeUser = JSON.parse(local);
+        } else {
+          const res = await fetch("/api/auth/session");
+          const data = await res.json();
+          if (data.patient) {
+            activeUser = data.patient;
+          }
         }
 
-        const res = await fetch("/api/auth/session");
-        const data = await res.json();
-        if (data.patient) {
-          setCurrentUser(data.patient);
+        if (activeUser) {
+          setCurrentUser(activeUser);
           setFormData((prev) => ({
             ...prev,
-            patientName: prev.patientName || data.patient.name || "",
-            patientEmail: prev.patientEmail || data.patient.email || "",
-            patientPhone: prev.patientPhone || data.patient.phone || "",
+            patientName: activeUser.name || prev.patientName || "",
+            patientEmail: activeUser.email || prev.patientEmail || "",
+            patientPhone: activeUser.phone || prev.patientPhone || "",
           }));
         }
       } catch (e) {}
@@ -255,6 +292,11 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
           origin: { y: 0.6 },
           colors: ["#C9A227", "#DDB83C", "#1C1A17", "#4ADE80"],
         });
+      } catch (e) {}
+
+      // Clear draft storage
+      try {
+        sessionStorage.removeItem("amulyam_booking_draft");
       } catch (e) {}
 
       // Redirect to digital pass
