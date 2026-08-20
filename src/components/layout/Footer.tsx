@@ -185,14 +185,30 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Copyright & Bottom note */}
+          {/* Copyright & TheWebVale Attribution */}
           <div className="pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-[#8A8175]">
             <p>© {new Date().getFullYear()} {CLINIC_INFO.name}. All Rights Reserved.</p>
+            
+            <div className="flex items-center gap-1.5 text-xs text-[#A39E93]">
+              <span>Made with</span>
+              <span className="text-red-500 animate-pulse">❤️</span>
+              <span>by</span>
+              <a
+                href="https://www.thewebvale.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-[#C9A227] hover:text-[#DDB83C] hover:underline transition-colors"
+              >
+                TheWebVale
+              </a>
+            </div>
+
             <div className="flex items-center gap-2">
               <HeartHandshake className="w-3.5 h-3.5 text-[#C9A227]" />
-              <span>Dedicated to Gentle & Pain-Free Dental Health in Bhopal</span>
+              <span>Dedicated to Gentle &amp; Pain-Free Dental Health in Bhopal</span>
             </div>
           </div>
+
         </div>
       </footer>
 
