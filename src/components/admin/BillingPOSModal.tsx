@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Invoice, InvoiceLineItem, PaymentMethod, QueueToken, Booking } from "@/lib/types";
 import { CLINIC_INFO, CLINIC_SERVICES, LEAD_DOCTOR } from "@/lib/constants";
 import {
@@ -72,6 +72,15 @@ export default function BillingPOSModal({
   const [saving, setSaving] = useState(false);
   const [savedInvoice, setSavedInvoice] = useState<Invoice | null>(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "unset";
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const subtotal = items.reduce((acc, curr) => acc + curr.unitPrice * curr.quantity, 0);
@@ -137,8 +146,15 @@ export default function BillingPOSModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
-      <div className="bg-slate-900 border border-amber-500/30 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+    <div
+      data-lenis-prevent
+      onWheel={(e) => e.stopPropagation()}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto overscroll-contain"
+    >
+      <div
+        data-lenis-prevent
+        className="bg-slate-900 border border-amber-500/30 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+      >
         {/* Header */}
         <div className="px-6 py-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-amber-500/20 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -171,7 +187,11 @@ export default function BillingPOSModal({
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs sm:text-sm">
+        <div
+          data-lenis-prevent
+          onWheel={(e) => e.stopPropagation()}
+          className="p-6 overflow-y-auto space-y-6 flex-1 text-xs sm:text-sm overscroll-contain"
+        >
           {/* Printable Invoice Container */}
           <div id="printable-invoice" className="bg-white text-slate-900 p-6 sm:p-8 rounded-xl shadow-lg border border-slate-200 space-y-5">
             {/* Invoice Top Header */}

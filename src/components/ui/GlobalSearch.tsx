@@ -72,6 +72,15 @@ function CommandPaletteModal({
   const router = useRouter();
   const [query, setQuery] = useState("");
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "unset";
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const q = query.trim().toLowerCase();
@@ -94,12 +103,19 @@ function CommandPaletteModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
+    <div
+      data-lenis-prevent
+      onWheel={(e) => e.stopPropagation()}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 p-4 bg-black/75 backdrop-blur-md animate-fadeIn overscroll-contain"
+    >
       {/* Backdrop */}
       <div className="fixed inset-0" onClick={onClose} />
 
       {/* Modal Box */}
-      <div className="relative bg-white dark:bg-[#181715] rounded-3xl border-2 border-[#C9A227]/40 shadow-2xl max-w-2xl w-full overflow-hidden z-10">
+      <div
+        data-lenis-prevent
+        className="relative bg-white dark:bg-[#181715] rounded-3xl border-2 border-[#C9A227]/40 shadow-2xl max-w-2xl w-full overflow-hidden z-10 overscroll-contain"
+      >
         {/* Search Input Bar */}
         <div className="p-4 sm:p-5 border-b border-[#E8E0D2] dark:border-[#2A2621] flex items-center gap-3">
           <Search className="w-5 h-5 text-[#C9A227] flex-shrink-0" />
@@ -128,7 +144,11 @@ function CommandPaletteModal({
         </div>
 
         {/* Results Body */}
-        <div className="p-4 max-h-[60vh] overflow-y-auto space-y-4">
+        <div
+          data-lenis-prevent
+          onWheel={(e) => e.stopPropagation()}
+          className="p-4 max-h-[60vh] overflow-y-auto space-y-4 overscroll-contain"
+        >
           {/* Quick Booking Ref Jump */}
           {isBookingRef && (
             <div

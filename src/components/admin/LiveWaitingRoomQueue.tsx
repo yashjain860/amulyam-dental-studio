@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { QueueToken, QueueStatus, Booking } from "@/lib/types";
 import { CLINIC_SERVICES, TIME_SLOTS } from "@/lib/constants";
 import {
@@ -43,6 +43,15 @@ export default function LiveWaitingRoomQueue({
   const [walkInNotes, setWalkInNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [callingToken, setCallingToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isWalkInModalOpen) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "unset";
+      };
+    }
+  }, [isWalkInModalOpen]);
 
   // Play audio chime when calling patient
   const handleCallPatient = async (token: QueueToken) => {
@@ -389,8 +398,15 @@ export default function LiveWaitingRoomQueue({
 
       {/* Express Walk-In Patient Modal */}
       {isWalkInModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-amber-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+        <div
+          data-lenis-prevent
+          onWheel={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overscroll-contain"
+        >
+          <div
+            data-lenis-prevent
+            className="bg-slate-900 border border-amber-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 overscroll-contain max-h-[90vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h4 className="text-base font-bold text-white">Express Walk-In Patient Entry</h4>
               <button onClick={() => setIsWalkInModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>

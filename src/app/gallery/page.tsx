@@ -139,8 +139,8 @@ export default function GalleryPage() {
 
       {/* Lightbox Modal */}
       {activeLightbox && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="relative max-w-4xl w-full bg-[#181715] rounded-3xl border border-[#C9A227]/40 overflow-hidden shadow-2xl p-4 animate-scaleUp">
+        <div data-lenis-prevent className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div data-lenis-prevent className="relative max-w-4xl w-full bg-[#181715] rounded-3xl border border-[#C9A227]/40 overflow-hidden shadow-2xl p-4 animate-scaleUp">
             <button
               onClick={() => setActiveLightbox(null)}
               className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 text-white hover:bg-[#C9A227] hover:text-black transition-all cursor-pointer"
