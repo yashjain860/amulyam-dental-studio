@@ -211,11 +211,15 @@ export default function Footer() {
         href={CLINIC_INFO.whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Chat on WhatsApp"
-        className="fixed bottom-6 right-6 z-40 bg-[#25D366] hover:bg-[#20BA5A] text-white p-3.5 rounded-full shadow-2xl transition-transform hover:scale-110 flex items-center justify-center group"
+        aria-label="Chat on WhatsApp with Dr. Shreya Nidhi"
+        className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-50 bg-[#25D366] hover:bg-[#20BA5A] text-white p-3.5 sm:p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center group"
       >
+        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25D366] opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#128C7E] border-2 border-white"></span>
+        </span>
         <MessageCircle className="w-6 h-6" />
-        <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs group-hover:ml-2 group-hover:pr-1 transition-all duration-300 font-medium text-xs">
+        <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs group-hover:ml-2 group-hover:pr-1 transition-all duration-300 font-bold text-xs hidden sm:inline-block">
           Chat on WhatsApp
         </span>
       </a>
