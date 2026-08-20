@@ -14,6 +14,15 @@ import {
   TreatmentPlan,
   Invoice,
   CashRegisterEntry,
+  SmileTransformation,
+  RadiographRecord,
+  ConsentForm,
+  DentalLabOrder,
+  LabOrderStatus,
+  InventoryItem,
+  SterilizationLog,
+  MembershipPlan,
+  PostOpProtocol,
 } from "./types";
 
 export function hashPassword(password: string): string {
@@ -31,6 +40,12 @@ interface DatabaseSchema {
   treatmentPlans: TreatmentPlan[];
   invoices: Invoice[];
   cashRegister: CashRegisterEntry[];
+  smileCases?: SmileTransformation[];
+  radiographs?: RadiographRecord[];
+  consentForms?: ConsentForm[];
+  labOrders?: DentalLabOrder[];
+  inventory?: InventoryItem[];
+  sterilizationLogs?: SterilizationLog[];
 }
 
 
@@ -1141,6 +1156,539 @@ export function updatePatient(
   writeDb(db);
   return db.users[idx];
 }
+
+// ----------------------------------------------------
+// 1. BEFORE & AFTER SMILE MAKEOVER STUDIO
+// ----------------------------------------------------
+const SEED_SMILE_CASES: SmileTransformation[] = [
+  {
+    id: "smile-01",
+    title: "Upper Arch E-Max Veneers Makeover",
+    category: "Cosmetic Veneers",
+    patientInitials: "R.S.",
+    patientAge: 28,
+    beforeImage: "https://amulyam.thewebvale.com/images/s10.jpg",
+    afterImage: "https://amulyam.thewebvale.com/images/s14.jpg",
+    doctorNotes: "Corrected fluorosis discoloration & midline diastema with 6 minimal-prep E-max lithium disilicate veneers (Shade BL2).",
+    treatmentDuration: "2 Visits (5 Days)",
+    consentGranted: true,
+    featured: true,
+    createdAt: "2026-08-01T10:00:00Z",
+  },
+  {
+    id: "smile-02",
+    title: "Single-Visit Laser Teeth Whitening",
+    category: "Teeth Whitening",
+    patientInitials: "A.K.",
+    patientAge: 34,
+    beforeImage: "https://amulyam.thewebvale.com/images/s11.jpg",
+    afterImage: "https://amulyam.thewebvale.com/images/s12.jpg",
+    doctorNotes: "Hydrogen peroxide 37.5% light-activated in-office bleaching. Improved from Shade A3.5 to A1 in 45 minutes.",
+    treatmentDuration: "1 Visit (45 Mins)",
+    consentGranted: true,
+    featured: true,
+    createdAt: "2026-08-10T11:30:00Z",
+  },
+  {
+    id: "smile-03",
+    title: "Clear Aligner Crowding Correction",
+    category: "Clear Aligners",
+    patientInitials: "P.T.",
+    patientAge: 24,
+    beforeImage: "https://amulyam.thewebvale.com/images/s13.jpg",
+    afterImage: "https://amulyam.thewebvale.com/images/s14.jpg",
+    doctorNotes: "Resolved anterior crowding with 14 transparent aligner trays over 7 months without wire braces.",
+    treatmentDuration: "7 Months",
+    consentGranted: true,
+    featured: true,
+    createdAt: "2026-07-15T09:00:00Z",
+  },
+];
+
+export function getSmileTransformations(): SmileTransformation[] {
+  const db = readDb();
+  if (!db.smileCases || db.smileCases.length === 0) {
+    db.smileCases = SEED_SMILE_CASES;
+    writeDb(db);
+  }
+  return db.smileCases;
+}
+
+export function addSmileTransformation(item: Omit<SmileTransformation, "id" | "createdAt">): SmileTransformation {
+  const db = readDb();
+  if (!db.smileCases) db.smileCases = [...SEED_SMILE_CASES];
+  const newCase: SmileTransformation = {
+    ...item,
+    id: `smile-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+  };
+  db.smileCases.unshift(newCase);
+  writeDb(db);
+  return newCase;
+}
+
+// ----------------------------------------------------
+// 2. RVG & OPG DIGITAL RADIOGRAPH VAULT
+// ----------------------------------------------------
+const SEED_RADIOGRAPHS: RadiographRecord[] = [
+  {
+    id: "rad-01",
+    patientId: "pat-b-book-101",
+    patientName: "Aarav Sharma",
+    type: "IOPA",
+    toothNumber: 16,
+    imageUrl: "https://amulyam.thewebvale.com/images/clinic_3.png",
+    takenDate: "2026-08-19",
+    workingLengthMm: 21.5,
+    findings: "Deep occlusal caries approaching pulp chamber on #16. Periapical radiolucency on mesial root apex.",
+    doctorNotes: "Working length confirmed: MB: 21.5mm, DB: 21.0mm, Palatal: 22.0mm. Biomechanical prep initiated.",
+    contrast: 100,
+    brightness: 100,
+    inverted: false,
+    createdAt: "2026-08-19T10:00:00Z",
+  },
+  {
+    id: "rad-02",
+    patientId: "pat-b-book-103",
+    patientName: "Rajesh Mehra",
+    type: "OPG",
+    imageUrl: "https://amulyam.thewebvale.com/images/clinic_1.png",
+    takenDate: "2026-08-18",
+    findings: "Generalized horizontal bone loss. Edentulous span #36, #37 with adequate ridge height (14mm) for implant fixture.",
+    doctorNotes: "Implant plan approved for 4.2 x 11.5mm Osstem fixture on #36.",
+    createdAt: "2026-08-18T14:20:00Z",
+  },
+];
+
+export function getRadiographs(patientNameOrId?: string): RadiographRecord[] {
+  const db = readDb();
+  if (!db.radiographs || db.radiographs.length === 0) {
+    db.radiographs = SEED_RADIOGRAPHS;
+    writeDb(db);
+  }
+  if (!patientNameOrId) return db.radiographs;
+  return db.radiographs.filter(
+    (r) =>
+      r.patientId === patientNameOrId ||
+      r.patientName.toLowerCase().includes(patientNameOrId.toLowerCase())
+  );
+}
+
+export function saveRadiograph(input: Omit<RadiographRecord, "id" | "createdAt">): RadiographRecord {
+  const db = readDb();
+  if (!db.radiographs) db.radiographs = [...SEED_RADIOGRAPHS];
+  const newRad: RadiographRecord = {
+    ...input,
+    id: `rad-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+  };
+  db.radiographs.unshift(newRad);
+  writeDb(db);
+  return newRad;
+}
+
+// ----------------------------------------------------
+// 3. MEDICO-LEGAL DIGITAL CONSENT FORMS
+// ----------------------------------------------------
+const SEED_CONSENT_TEMPLATES = [
+  {
+    type: "RCT",
+    title: "Root Canal Treatment (RCT) & Crown Consent",
+    en: "I hereby authorize Dr. Shreya Nidhi to perform Endodontic Root Canal Therapy on the specified tooth. I understand that the goal is to relieve pain and preserve the natural tooth. Possible complications including post-op tenderness, instrument separation, or need for surgical apicoectomy have been explained to me.",
+    hi: "मैं डॉ. श्रेया निधि को अपने दांत का रूट कैनाल ट्रीटमेंट करने की अनुमति देता/देती हूँ। मुझे उपचार के सभी चरण एवं संभावित जटिलताओं के बारे में समझा दिया गया है।",
+    risks: [
+      "Post-operative mild pain or soreness for 2-3 days",
+      "Need for full-coverage crown restoration after completion",
+      "Rare anatomical canal calcification or accessory canal challenges"
+    ]
+  },
+  {
+    type: "IMPLANT_SURGERY",
+    title: "Dental Implant Placement & Bone Augmentation Consent",
+    en: "I consent to the surgical placement of titanium dental implant fixture(s). I understand osseointegration takes 3-4 months and have disclosed all medical conditions including diabetes, osteoporosis, and blood-thinning medications.",
+    hi: "मैं अपने जबड़े में डेंटल इम्प्लांट सर्जरी की अनुमति देता/देती हूँ। मैंने अपनी सभी मेडिकल हिस्ट्री जैसे शुगर, बीपी आदि की पूरी जानकारी दी है।",
+    risks: [
+      "Surgical swelling and minor bruising for 48-72 hours",
+      "Need for strict oral hygiene maintenance and follow-up visits",
+      "Rare risk of implant failure to integrate requiring fixture replacement"
+    ]
+  },
+  {
+    type: "EXTRACTION",
+    title: "Tooth Extraction & Minor Oral Surgery Consent",
+    en: "I authorize the extraction of the indicated tooth under local anesthesia. I agree to follow all post-operative instructions including biting on the gauze pack and avoiding spitting or hot food for 24 hours.",
+    hi: "मैं स्थानीय एनेस्थीसिया के तहत दांत निकालने की अनुमति देता/देती हूँ। मैं सभी सावधानियों जैसे 24 घंटे थूकना नहीं और गर्म भोजन से परहेज का पालन करूँगा/करूँगी।",
+    risks: [
+      "Bleeding, mild swelling, and temporary jaw stiffness",
+      "Dry socket (alveolar osteitis) if post-op precautions are violated",
+      "Adjacent tooth sensitivity or temporary nerve tingling"
+    ]
+  }
+];
+
+export function getConsentTemplates() {
+  return SEED_CONSENT_TEMPLATES;
+}
+
+export function getConsentForms(patientNameOrId?: string): ConsentForm[] {
+  const db = readDb();
+  if (!db.consentForms) db.consentForms = [];
+  if (!patientNameOrId) return db.consentForms;
+  return db.consentForms.filter(
+    (c) =>
+      c.patientId === patientNameOrId ||
+      c.patientName.toLowerCase().includes(patientNameOrId.toLowerCase())
+  );
+}
+
+export function createConsentForm(input: Omit<ConsentForm, "id" | "createdAt">): ConsentForm {
+  const db = readDb();
+  if (!db.consentForms) db.consentForms = [];
+  const newConsent: ConsentForm = {
+    ...input,
+    id: `consent-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+  };
+  db.consentForms.unshift(newConsent);
+  writeDb(db);
+  return newConsent;
+}
+
+// ----------------------------------------------------
+// 4. DENTAL LAB & PROSTHETICS TRACKER
+// ----------------------------------------------------
+const SEED_LAB_ORDERS: DentalLabOrder[] = [
+  {
+    id: "lab-01",
+    orderNumber: "LAB-2026-081",
+    patientName: "Aarav Sharma",
+    toothNumbers: [16],
+    prostheticType: "Monolithic Zirconia Crown",
+    shade: "A2",
+    labPartner: "DentCare Dental Lab",
+    status: "IN_FABRICATION",
+    impressionDate: "2026-08-19",
+    sentDate: "2026-08-19",
+    expectedDate: "2026-08-23",
+    scheduledSeatingDate: "2026-08-24",
+    costToClinic: 1200,
+    patientCharge: 6000,
+    notes: "High translucency required for upper molar #16. 10-year warranty certificate.",
+    createdAt: "2026-08-19T11:00:00Z",
+  },
+  {
+    id: "lab-02",
+    orderNumber: "LAB-2026-082",
+    patientName: "Rajesh Mehra",
+    toothNumbers: [36],
+    prostheticType: "Multi-Layered Katana Zirconia",
+    shade: "A3",
+    labPartner: "Katana Zirconia Studio",
+    status: "TRIAL_RECEIVED",
+    impressionDate: "2026-08-15",
+    sentDate: "2026-08-15",
+    expectedDate: "2026-08-20",
+    receivedDate: "2026-08-20",
+    scheduledSeatingDate: "2026-08-21",
+    costToClinic: 1800,
+    patientCharge: 9500,
+    notes: "Screw-retained implant crown for Osstem fixture.",
+    createdAt: "2026-08-15T15:00:00Z",
+  },
+  {
+    id: "lab-03",
+    orderNumber: "LAB-2026-083",
+    patientName: "Pooja Trivedi",
+    toothNumbers: [11, 12, 21, 22],
+    prostheticType: "E-Max Lithium Disilicate Veneer",
+    shade: "BL1",
+    labPartner: "DentCare Dental Lab",
+    status: "READY_FOR_CEMENTATION",
+    impressionDate: "2026-08-14",
+    sentDate: "2026-08-14",
+    expectedDate: "2026-08-19",
+    receivedDate: "2026-08-19",
+    scheduledSeatingDate: "2026-08-20",
+    costToClinic: 4800,
+    patientCharge: 24000,
+    notes: "Bleach shade aesthetic veneers. Etched & silanated ready for Variolink cementation.",
+    createdAt: "2026-08-14T09:30:00Z",
+  },
+];
+
+export function getDentalLabOrders(): DentalLabOrder[] {
+  const db = readDb();
+  if (!db.labOrders || db.labOrders.length === 0) {
+    db.labOrders = SEED_LAB_ORDERS;
+    writeDb(db);
+  }
+  return db.labOrders;
+}
+
+export function createDentalLabOrder(input: Omit<DentalLabOrder, "id" | "orderNumber" | "createdAt">): DentalLabOrder {
+  const db = readDb();
+  if (!db.labOrders) db.labOrders = [...SEED_LAB_ORDERS];
+  const newOrder: DentalLabOrder = {
+    ...input,
+    id: `lab-${Date.now()}`,
+    orderNumber: `LAB-2026-${String(db.labOrders.length + 80).padStart(3, "0")}`,
+    createdAt: new Date().toISOString(),
+  };
+  db.labOrders.unshift(newOrder);
+  writeDb(db);
+  return newOrder;
+}
+
+export function updateDentalLabOrderStatus(id: string, status: LabOrderStatus): DentalLabOrder | null {
+  const db = readDb();
+  if (!db.labOrders) return null;
+  const idx = db.labOrders.findIndex((o) => o.id === id);
+  if (idx === -1) return null;
+  db.labOrders[idx].status = status;
+  if (status === "TRIAL_RECEIVED" || status === "READY_FOR_CEMENTATION") {
+    db.labOrders[idx].receivedDate = new Date().toISOString().split("T")[0];
+  }
+  writeDb(db);
+  return db.labOrders[idx];
+}
+
+// ----------------------------------------------------
+// 5. INVENTORY & AUTOCLAVE STERILIZATION LOGS
+// ----------------------------------------------------
+const SEED_INVENTORY: InventoryItem[] = [
+  {
+    id: "inv-01",
+    name: "3M Filtek Z250 Universal Composite (Shade A2)",
+    category: "Resin Composite",
+    currentStock: 4,
+    unit: "tubes",
+    minThreshold: 2,
+    batchNumber: "3M-9824B",
+    expiryDate: "2027-11",
+    supplierName: "Metro Dental Supply Bhopal",
+    unitCost: 1450,
+    location: "Operatory 1 Cabinet",
+  },
+  {
+    id: "inv-02",
+    name: "Lignox 2% with Adrenaline 1:80,000 Local Anesthesia",
+    category: "Local Anesthesia",
+    currentStock: 45,
+    unit: "cartridges",
+    minThreshold: 20,
+    batchNumber: "LX-55102",
+    expiryDate: "2027-08",
+    supplierName: "Indore Pharma Depot",
+    unitCost: 28,
+    location: "Dark Room Storage",
+  },
+  {
+    id: "inv-03",
+    name: "Dentsply ProTaper Gold Rotary Files (SX-F3)",
+    category: "Endodontics",
+    currentStock: 6,
+    unit: "packs",
+    minThreshold: 3,
+    batchNumber: "PTG-8812",
+    expiryDate: "2028-04",
+    supplierName: "Dentsply Sirona India",
+    unitCost: 1800,
+    location: "Operatory 1 Cabinet",
+  },
+  {
+    id: "inv-04",
+    name: "Opalescence Boost 40% In-Office Whitening Kit",
+    category: "Bleaching & Cosmetic",
+    currentStock: 2,
+    unit: "kits",
+    minThreshold: 2,
+    batchNumber: "OPB-1120",
+    expiryDate: "2026-12",
+    supplierName: "Ultradent India",
+    unitCost: 3200,
+    location: "Dark Room Storage",
+  },
+];
+
+const SEED_STERILIZATION_LOGS: SterilizationLog[] = [
+  {
+    id: "ster-01",
+    cycleNumber: "CYCLE-2026-08-20-A",
+    autoclaveUnit: "B-Class Autoclave (Main)",
+    temperatureCelsius: 134,
+    pressurePsi: 30,
+    holdingTimeMinutes: 15,
+    biologicalIndicator: "PASS (Negative)",
+    chemicalIndicator: "PASS",
+    pouchesSterilized: 18,
+    technicianName: "Reception / Staff Anjali",
+    date: "2026-08-20",
+    time: "08:30 AM",
+    status: "CERTIFIED_STERILE",
+  },
+  {
+    id: "ster-02",
+    cycleNumber: "CYCLE-2026-08-19-B",
+    autoclaveUnit: "B-Class Autoclave (Main)",
+    temperatureCelsius: 134,
+    pressurePsi: 30,
+    holdingTimeMinutes: 15,
+    biologicalIndicator: "PASS (Negative)",
+    chemicalIndicator: "PASS",
+    pouchesSterilized: 22,
+    technicianName: "Reception / Staff Anjali",
+    date: "2026-08-19",
+    time: "02:15 PM",
+    status: "CERTIFIED_STERILE",
+  },
+];
+
+export function getInventoryItems(): InventoryItem[] {
+  const db = readDb();
+  if (!db.inventory || db.inventory.length === 0) {
+    db.inventory = SEED_INVENTORY;
+    writeDb(db);
+  }
+  return db.inventory;
+}
+
+export function updateInventoryStock(id: string, delta: number): InventoryItem | null {
+  const db = readDb();
+  if (!db.inventory) return null;
+  const idx = db.inventory.findIndex((i) => i.id === id);
+  if (idx === -1) return null;
+  db.inventory[idx].currentStock = Math.max(0, db.inventory[idx].currentStock + delta);
+  writeDb(db);
+  return db.inventory[idx];
+}
+
+export function getSterilizationLogs(): SterilizationLog[] {
+  const db = readDb();
+  if (!db.sterilizationLogs || db.sterilizationLogs.length === 0) {
+    db.sterilizationLogs = SEED_STERILIZATION_LOGS;
+    writeDb(db);
+  }
+  return db.sterilizationLogs;
+}
+
+export function logSterilizationCycle(input: Omit<SterilizationLog, "id">): SterilizationLog {
+  const db = readDb();
+  if (!db.sterilizationLogs) db.sterilizationLogs = [...SEED_STERILIZATION_LOGS];
+  const newLog: SterilizationLog = {
+    ...input,
+    id: `ster-${Date.now()}`,
+  };
+  db.sterilizationLogs.unshift(newLog);
+  writeDb(db);
+  return newLog;
+}
+
+// ----------------------------------------------------
+// 6. MEMBERSHIP PLANS & POST-OP PROTOCOLS
+// ----------------------------------------------------
+const SEED_MEMBERSHIP_PLANS: MembershipPlan[] = [
+  {
+    id: "mem-silver",
+    name: "Amulyam Silver Care",
+    annualFee: 1499,
+    freeCleaningsPerYear: 1,
+    discountPercentTreatments: 10,
+    unlimitedFreeConsultations: true,
+    freeXraysIncluded: 2,
+    maxFamilyMembers: 1,
+    validityDays: 365,
+  },
+  {
+    id: "mem-gold",
+    name: "Amulyam Gold Smile Plan",
+    annualFee: 2999,
+    freeCleaningsPerYear: 2,
+    discountPercentTreatments: 15,
+    unlimitedFreeConsultations: true,
+    freeXraysIncluded: 4,
+    maxFamilyMembers: 2,
+    validityDays: 365,
+  },
+  {
+    id: "mem-platinum",
+    name: "Amulyam Platinum Family Club",
+    annualFee: 4999,
+    freeCleaningsPerYear: 4,
+    discountPercentTreatments: 20,
+    unlimitedFreeConsultations: true,
+    freeXraysIncluded: 8,
+    maxFamilyMembers: 4,
+    validityDays: 365,
+  },
+];
+
+const SEED_POST_OP_PROTOCOLS: PostOpProtocol[] = [
+  {
+    id: "post-rct",
+    treatmentName: "Root Canal Treatment",
+    immediateInstructions: [
+      "Avoid chewing hard or sticky foods on the treated side until the permanent crown is placed.",
+      "Mild tenderness on chewing is normal for 2-3 days as tissues heal around the root apex.",
+      "Continue prescribed antibiotics and analgesics as directed by Dr. Shreya Nidhi."
+    ],
+    dietaryRestrictions: [
+      "Soft foods like khichdi, curd rice, daliya for 24 hours.",
+      "Avoid extremely hot tea/coffee while local anesthesia numbness persists."
+    ],
+    medicationGuide: "Take Tab. Ketorolac / Zerodol-SP after meals if experiencing soreness.",
+    emergencySymptoms: [
+      "Severe throbbing pain not relieved by medication",
+      "Visible swelling in gums or outer facial cheek"
+    ],
+    whatsappTemplate: "Namaste {patientName}, Dr. Shreya Nidhi from Amulyam Dental Studio checking in after your Root Canal today. Please take your prescribed medicine after food and avoid chewing on that side. Feel free to message us here if you have any questions!"
+  },
+  {
+    id: "post-ext",
+    treatmentName: "Tooth Extraction",
+    immediateInstructions: [
+      "Keep the sterile cotton gauze firmly pressed between your teeth for 45 minutes.",
+      "DO NOT spit, suck through a straw, or smoke for 24 hours (preserves the healing blood clot).",
+      "Apply an external ice pack on your cheek (10 mins on / 10 mins off) to minimize swelling."
+    ],
+    dietaryRestrictions: [
+      "Cold, soft foods only (Ice cream, cold milk, yogurt, smoothie) on the first day.",
+      "No spicy, crunchy, or hot foods for 48 hours."
+    ],
+    medicationGuide: "Start painkiller before the numbness wears off completely.",
+    emergencySymptoms: [
+      "Continuous active bright red bleeding soaking multiple gauze packs",
+      "High fever or persistent throbbing pain after day 3"
+    ],
+    whatsappTemplate: "Namaste {patientName}, follow-up from Amulyam Dental Studio. Remember: Do not spit or rinse today. Cold ice cream is recommended! Rest well and reach out if you need anything."
+  },
+  {
+    id: "post-implant",
+    treatmentName: "Dental Implant Surgery",
+    immediateInstructions: [
+      "Do not disturb the surgical site with your tongue or fingers.",
+      "Gentle warm saline rinses starting from tomorrow morning (after 24 hours).",
+      "Use the prescribed Chlorhexidine mouthwash twice daily without vigorous swishing."
+    ],
+    dietaryRestrictions: [
+      "Nutritious soft diet for 7 days avoiding direct pressure on implant area."
+    ],
+    medicationGuide: "Complete the full 5-day course of Amoxicillin-Clavulanate 625mg.",
+    emergencySymptoms: [
+      "Excessive swelling beyond 72 hours",
+      "Loosening of the healing abutment screw"
+    ],
+    whatsappTemplate: "Namaste {patientName}, Dr. Shreya Nidhi here. Your implant fixture was placed with high primary stability today. Please take your antibiotics on time and use warm salt water from tomorrow. Speedy recovery!"
+  }
+];
+
+export function getMembershipPlans(): MembershipPlan[] {
+  return SEED_MEMBERSHIP_PLANS;
+}
+
+export function getPostOpProtocols(): PostOpProtocol[] {
+  return SEED_POST_OP_PROTOCOLS;
+}
+
 
 
 

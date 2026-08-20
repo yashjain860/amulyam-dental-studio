@@ -289,3 +289,162 @@ export interface CashRegisterEntry {
   createdAt: string;
 }
 
+// ----------------------------------------------------
+// BEFORE & AFTER SMILE MAKEOVER STUDIO
+// ----------------------------------------------------
+export interface SmileTransformation {
+  id: string;
+  title: string;
+  category: "Cosmetic Veneers" | "Teeth Whitening" | "Clear Aligners" | "Dental Implants" | "Diastema Closure" | "Full Mouth Rehab";
+  patientInitials: string;
+  patientAge?: number;
+  beforeImage: string;
+  afterImage: string;
+  doctorNotes: string;
+  treatmentDuration: string; // e.g. "2 Visits" or "6 Months"
+  consentGranted: boolean;
+  featured: boolean;
+  createdAt: string;
+}
+
+// ----------------------------------------------------
+// RVG & OPG DIGITAL RADIOGRAPH VAULT
+// ----------------------------------------------------
+export interface RadiographRecord {
+  id: string;
+  patientId: string;
+  patientName: string;
+  type: "IOPA" | "OPG" | "BITEWING" | "CBCT" | "INTRAORAL_PHOTO";
+  toothNumber?: number; // FDI 11-48
+  imageUrl: string;
+  takenDate: string;
+  workingLengthMm?: number;
+  findings: string;
+  doctorNotes: string;
+  contrast?: number;
+  brightness?: number;
+  inverted?: boolean;
+  createdAt: string;
+}
+
+// ----------------------------------------------------
+// MEDICO-LEGAL DIGITAL CONSENT FORMS
+// ----------------------------------------------------
+export interface ConsentForm {
+  id: string;
+  patientId: string;
+  patientName: string;
+  patientPhone: string;
+  treatmentType: "RCT" | "IMPLANT_SURGERY" | "EXTRACTION" | "ORTHODONTICS" | "BLEACHING" | "GENERAL_ANESTHESIA";
+  language: "EN" | "HI";
+  formContent: string;
+  riskFactorsAcknowledged: string[];
+  patientSignatureDataUrl: string; // Base64 signature
+  patientSignedAt: string;
+  doctorName: string;
+  doctorRegistration: string;
+  witnessName?: string;
+  status: "SIGNED" | "DRAFT" | "REVOKED";
+  createdAt: string;
+}
+
+// ----------------------------------------------------
+// DENTAL LAB & PROSTHETICS TRACKER
+// ----------------------------------------------------
+export type LabOrderStatus =
+  | "IMPRESSION_TAKEN"
+  | "SENT_TO_LAB"
+  | "IN_FABRICATION"
+  | "TRIAL_RECEIVED"
+  | "READY_FOR_CEMENTATION"
+  | "COMPLETED"
+  | "REMAKE_REQUESTED";
+
+export interface DentalLabOrder {
+  id: string;
+  orderNumber: string; // e.g. "LAB-2026-081"
+  patientId?: string;
+  patientName: string;
+  toothNumbers: number[]; // e.g. [16, 17]
+  prostheticType:
+    | "Monolithic Zirconia Crown"
+    | "Multi-Layered Katana Zirconia"
+    | "E-Max Lithium Disilicate Veneer"
+    | "PFM (Porcelain Fused to Metal)"
+    | "Clear Aligner Tray"
+    | "Custom Night Guard / Splint"
+    | "Complete Denture (BPS)"
+    | "Cast Partial Denture";
+  shade: string; // e.g. "A2", "A3", "BL1"
+  labPartner: "DentCare Dental Lab" | "Katana Zirconia Studio" | "C-Dent Bhopal" | "In-House Lab";
+  status: LabOrderStatus;
+  impressionDate: string;
+  sentDate?: string;
+  expectedDate: string;
+  receivedDate?: string;
+  scheduledSeatingDate?: string;
+  costToClinic: number;
+  patientCharge: number;
+  notes?: string;
+  createdAt: string;
+}
+
+// ----------------------------------------------------
+// DENTAL INVENTORY, CONSUMABLES & STERILIZATION LOGS
+// ----------------------------------------------------
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: "Resin Composite" | "Local Anesthesia" | "Endodontics" | "Impression Material" | "Implants" | "Hygiene & PPE" | "Bleaching & Cosmetic";
+  currentStock: number;
+  unit: "tubes" | "cartridges" | "boxes" | "packs" | "bottles" | "kits";
+  minThreshold: number;
+  batchNumber: string;
+  expiryDate: string; // YYYY-MM
+  supplierName: string;
+  unitCost: number;
+  location: "Operatory 1 Cabinet" | "Hygiene Bay" | "Dark Room Storage" | "Sterilization Counter";
+}
+
+export interface SterilizationLog {
+  id: string;
+  cycleNumber: string; // e.g. "CYCLE-2026-08-20-A"
+  autoclaveUnit: "B-Class Autoclave (Main)" | "Flash Autoclave 2";
+  temperatureCelsius: number; // e.g. 134
+  pressurePsi: number; // e.g. 30
+  holdingTimeMinutes: number; // e.g. 15
+  biologicalIndicator: "PASS (Negative)" | "FAIL (Positive)";
+  chemicalIndicator: "PASS" | "FAIL";
+  pouchesSterilized: number;
+  technicianName: string;
+  date: string;
+  time: string;
+  status: "CERTIFIED_STERILE" | "RE_RUN_REQUIRED";
+}
+
+// ----------------------------------------------------
+// PATIENT DENTAL MEMBERSHIP & RECALL PROTOCOLS
+// ----------------------------------------------------
+export interface MembershipPlan {
+  id: string;
+  name: "Amulyam Silver Care" | "Amulyam Gold Smile Plan" | "Amulyam Platinum Family Club";
+  annualFee: number;
+  freeCleaningsPerYear: number;
+  discountPercentTreatments: number;
+  unlimitedFreeConsultations: boolean;
+  freeXraysIncluded: number;
+  maxFamilyMembers: number;
+  validityDays: number;
+}
+
+export interface PostOpProtocol {
+  id: string;
+  treatmentName: "Root Canal Treatment" | "Tooth Extraction" | "Dental Implant Surgery" | "Teeth Whitening" | "Scaling & Deep Cleaning";
+  immediateInstructions: string[];
+  dietaryRestrictions: string[];
+  medicationGuide: string;
+  emergencySymptoms: string[];
+  whatsappTemplate: string;
+}
+
+

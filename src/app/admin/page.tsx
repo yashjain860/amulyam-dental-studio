@@ -35,12 +35,14 @@ import {
   Banknote,
   FileText,
   Sliders,
-  DollarSign,
   HeartPulse,
   MapPin,
   AlertTriangle,
   UserCheck,
   ChevronDown,
+  FlaskConical,
+  MessageSquare,
+  FileCheck2,
 } from "lucide-react";
 import {
   Booking,
@@ -71,10 +73,30 @@ import BillingPOSModal from "@/components/admin/BillingPOSModal";
 import CashRegisterSummary from "@/components/admin/CashRegisterSummary";
 import TreatmentPlanManager from "@/components/admin/TreatmentPlanManager";
 import PatientProfileModal from "@/components/admin/PatientProfileModal";
+import BeforeAfterSmileStudio from "@/components/clinical/BeforeAfterSmileStudio";
+import RadiographXRayViewerModal from "@/components/clinical/RadiographXRayViewerModal";
+import ConsentFormModal from "@/components/clinical/ConsentFormModal";
+import DentalLabTracker from "@/components/admin/DentalLabTracker";
+import InventorySterilizationTracker from "@/components/admin/InventorySterilizationTracker";
+import PostOpCareRecallEngine from "@/components/admin/PostOpCareRecallEngine";
+
+import {
+  SmileTransformation,
+  RadiographRecord,
+  ConsentForm,
+  DentalLabOrder,
+  InventoryItem,
+  SterilizationLog,
+  PostOpProtocol,
+} from "@/lib/types";
 
 type AdminTab =
   | "receptionist"
   | "doctor"
+  | "smile_studio"
+  | "lab_tracker"
+  | "inventory_hygiene"
+  | "whatsapp_recalls"
   | "patients"
   | "appointments"
   | "billing"
@@ -100,6 +122,16 @@ export default function AdminPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [cashEntries, setCashEntries] = useState<CashRegisterEntry[]>([]);
   const [stats, setStats] = useState<ClinicStats | null>(null);
+
+  // New Clinical Data states
+  const [smileCases, setSmileCases] = useState<SmileTransformation[]>([]);
+  const [radiographs, setRadiographs] = useState<RadiographRecord[]>([]);
+  const [consentForms, setConsentForms] = useState<ConsentForm[]>([]);
+  const [labOrders, setLabOrders] = useState<DentalLabOrder[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [sterilizationLogs, setSterilizationLogs] = useState<SterilizationLog[]>([]);
+  const [protocols, setProtocols] = useState<PostOpProtocol[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [followupSuccess, setFollowupSuccess] = useState<string>("");
@@ -118,6 +150,8 @@ export default function AdminPage() {
   const [isRxModalOpen, setIsRxModalOpen] = useState(false);
   const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
+  const [isXRayModalOpen, setIsXRayModalOpen] = useState(false);
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
   const [selectedPatientForEdit, setSelectedPatientForEdit] = useState<UserAccount | null>(null);
   const [selectedBookingForModal, setSelectedBookingForModal] = useState<Booking | null>(null);
   const [selectedTokenForModal, setSelectedTokenForModal] = useState<QueueToken | null>(null);
@@ -221,6 +255,35 @@ export default function AdminPage() {
       const resS = await fetch("/api/admin/stats");
       const dataS = await resS.json();
       if (dataS.success) setStats(dataS.stats);
+
+      // Fetch Clinical Modules
+      const resSmile = await fetch("/api/admin/clinical?type=smile_cases");
+      const dataSmile = await resSmile.json();
+      if (dataSmile.success) setSmileCases(dataSmile.smileCases || []);
+
+      const resRad = await fetch("/api/admin/clinical?type=radiographs");
+      const dataRad = await resRad.json();
+      if (dataRad.success) setRadiographs(dataRad.radiographs || []);
+
+      const resConsent = await fetch("/api/admin/clinical?type=consent_forms");
+      const dataConsent = await resConsent.json();
+      if (dataConsent.success) setConsentForms(dataConsent.consentForms || []);
+
+      const resLab = await fetch("/api/admin/clinical?type=lab_orders");
+      const dataLab = await resLab.json();
+      if (dataLab.success) setLabOrders(dataLab.labOrders || []);
+
+      const resInvItem = await fetch("/api/admin/clinical?type=inventory");
+      const dataInvItem = await resInvItem.json();
+      if (dataInvItem.success) setInventory(dataInvItem.inventory || []);
+
+      const resSter = await fetch("/api/admin/clinical?type=sterilization_logs");
+      const dataSter = await resSter.json();
+      if (dataSter.success) setSterilizationLogs(dataSter.sterilizationLogs || []);
+
+      const resProto = await fetch("/api/admin/clinical?type=protocols");
+      const dataProto = await resProto.json();
+      if (dataProto.success) setProtocols(dataProto.protocols || []);
     } catch (e) {
       console.error("Admin fetch error:", e);
     } finally {
@@ -526,9 +589,13 @@ export default function AdminPage() {
           {[
             { id: "receptionist", label: "Waiting Room & Queue", icon: Users, count: queue.filter((q) => q.status === "WAITING" || q.status === "IN_CHAIR").length },
             { id: "doctor", label: "Tooth Odontogram Chart", icon: Stethoscope },
+            { id: "smile_studio", label: "Smile Makeover Studio", icon: Sparkles, count: smileCases.length },
+            { id: "lab_tracker", label: "Dental Lab & Crowns", icon: FlaskConical, count: labOrders.filter((l) => l.status !== "COMPLETED").length },
+            { id: "inventory_hygiene", label: "Stock & Autoclave", icon: ShieldCheck },
+            { id: "whatsapp_recalls", label: "WhatsApp Post-Op & Recalls", icon: MessageSquare },
+            { id: "billing", label: "Invoices & POS", icon: Receipt, count: invoices.length },
             { id: "patients", label: "Patient Directory (CRM)", icon: UserCheck, count: patients.length },
             { id: "appointments", label: "All Appointments", icon: Calendar, count: bookings.length },
-            { id: "billing", label: "Invoices & Billing", icon: Receipt, count: invoices.length },
             { id: "treatment_plans", label: "Treatment Plans", icon: Layers, count: treatmentPlans.length },
             { id: "cash_register", label: "EOD Cash Reconciliation", icon: Banknote },
             { id: "analytics", label: "Analytics & KPIs", icon: BarChart3 },
@@ -579,10 +646,80 @@ export default function AdminPage() {
 
         {/* ----------------- TAB 2: DOCTOR CLINICAL ODONTOGRAM ----------------- */}
         {activeTab === "doctor" && (
-          <DentalChartOdontogram
-            patientName={activePatient?.name || "Aarav Sharma"}
-            patientEmail={activePatient?.email || "aarav.sharma@example.com"}
+          <div className="space-y-4">
+            {/* Quick Action Toolbar for Dr. Shreya */}
+            <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white">👨‍⚕️ Chairside Clinical Superpowers:</span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsXRayModalOpen(true)}
+                  className="px-3 py-1.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 font-bold transition flex items-center gap-1.5"
+                >
+                  <span>🩻 RVG X-Ray Caliper</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsConsentModalOpen(true)}
+                  className="px-3 py-1.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 font-bold transition flex items-center gap-1.5"
+                >
+                  <FileCheck2 className="w-3.5 h-3.5" />
+                  <span>✍️ Medico-Legal Consent Form</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("smile_studio")}
+                  className="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 font-bold transition flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>✨ Smile Makeover Studio</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsRxModalOpen(true)}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold transition flex items-center gap-1.5"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>+ Issue E-Rx</span>
+                </button>
+              </div>
+            </div>
+
+            <DentalChartOdontogram
+              patientName={activePatient?.name || "Aarav Sharma"}
+              patientEmail={activePatient?.email || "aarav.sharma@example.com"}
+            />
+          </div>
+        )}
+
+        {/* ----------------- TAB: BEFORE & AFTER SMILE STUDIO ----------------- */}
+        {activeTab === "smile_studio" && (
+          <BeforeAfterSmileStudio cases={smileCases} isChairside={true} />
+        )}
+
+        {/* ----------------- TAB: DENTAL LAB & PROSTHETICS TRACKER ----------------- */}
+        {activeTab === "lab_tracker" && (
+          <DentalLabTracker orders={labOrders} onRefresh={fetchData} />
+        )}
+
+        {/* ----------------- TAB: INVENTORY & AUTOCLAVE STERILIZATION ----------------- */}
+        {activeTab === "inventory_hygiene" && (
+          <InventorySterilizationTracker
+            inventory={inventory}
+            sterilizationLogs={sterilizationLogs}
+            onRefresh={fetchData}
           />
+        )}
+
+        {/* ----------------- TAB: WHATSAPP POST-OP & 6-MONTH RECALLS ----------------- */}
+        {activeTab === "whatsapp_recalls" && (
+          <PostOpCareRecallEngine protocols={protocols} patients={patients} />
         )}
 
         {/* ----------------- TAB 3: PATIENTS CRM DIRECTORY (NEW!) ----------------- */}
@@ -1047,6 +1184,25 @@ export default function AdminPage() {
         patient={activePatient}
         onSaved={() => {
           setIsBillingModalOpen(false);
+          fetchData();
+        }}
+      />
+
+      {/* Radiograph X-Ray Viewer Modal */}
+      <RadiographXRayViewerModal
+        isOpen={isXRayModalOpen}
+        onClose={() => setIsXRayModalOpen(false)}
+        patient={activePatient}
+        radiographs={radiographs}
+      />
+
+      {/* Medico-Legal Consent Form Modal */}
+      <ConsentFormModal
+        isOpen={isConsentModalOpen}
+        onClose={() => setIsConsentModalOpen(false)}
+        patient={activePatient}
+        onSigned={() => {
+          setIsConsentModalOpen(false);
           fetchData();
         }}
       />

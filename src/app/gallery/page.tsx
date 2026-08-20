@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Sparkles, Play, Eye, X, Calendar, ArrowRight } from "lucide-react";
 import { GALLERY_ITEMS } from "@/lib/constants";
 import MotionReveal, { StaggerContainer, StaggerItem } from "@/components/ui/MotionReveal";
+import BeforeAfterSmileStudio from "@/components/clinical/BeforeAfterSmileStudio";
 
 export default function GalleryPage() {
   const [activeTab, setActiveTab] = useState<string>("ALL");
@@ -79,6 +80,69 @@ export default function GalleryPage() {
             </div>
           </MotionReveal>
         </div>
+      </div>
+
+      {/* Interactive Before & After Smile Studio */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+        <MotionReveal direction="up" className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#C9A227]/20 border border-[#C9A227]/40 text-[#DDB83C] text-xs font-semibold uppercase tracking-wider mb-2">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Real Patient Results</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#1A1A1A] dark:text-white">
+            Before &amp; After <span className="gold-text-gradient">Smile Makeovers</span>
+          </h2>
+          <p className="text-xs sm:text-sm text-[#8A8175] mt-1 max-w-xl mx-auto">
+            Interact with our split slider to see real cosmetic smile transformations crafted by Dr. Shreya Nidhi.
+          </p>
+        </MotionReveal>
+
+        <BeforeAfterSmileStudio
+          cases={[
+            {
+              id: "smile-01",
+              title: "Upper Arch E-Max Veneers Makeover",
+              category: "Cosmetic Veneers",
+              patientInitials: "R.S.",
+              patientAge: 28,
+              beforeImage: "/images/s10.jpg",
+              afterImage: "/images/s14.jpg",
+              doctorNotes: "Corrected fluorosis discoloration & midline diastema with 6 minimal-prep E-max lithium disilicate veneers (Shade BL2).",
+              treatmentDuration: "2 Visits (5 Days)",
+              consentGranted: true,
+              featured: true,
+              createdAt: "2026-08-01T10:00:00Z",
+            },
+            {
+              id: "smile-02",
+              title: "Single-Visit Laser Teeth Whitening",
+              category: "Teeth Whitening",
+              patientInitials: "A.K.",
+              patientAge: 34,
+              beforeImage: "/images/s11.jpg",
+              afterImage: "/images/s12.jpg",
+              doctorNotes: "Hydrogen peroxide 37.5% light-activated in-office bleaching. Improved from Shade A3.5 to A1 in 45 minutes.",
+              treatmentDuration: "1 Visit (45 Mins)",
+              consentGranted: true,
+              featured: true,
+              createdAt: "2026-08-10T11:30:00Z",
+            },
+            {
+              id: "smile-03",
+              title: "Clear Aligner Crowding Correction",
+              category: "Clear Aligners",
+              patientInitials: "P.T.",
+              patientAge: 24,
+              beforeImage: "/images/s13.jpg",
+              afterImage: "/images/s14.jpg",
+              doctorNotes: "Resolved anterior crowding with 14 transparent aligner trays over 7 months without wire braces.",
+              treatmentDuration: "7 Months",
+              consentGranted: true,
+              featured: true,
+              createdAt: "2026-07-15T09:00:00Z",
+            },
+          ]}
+        />
       </div>
 
       {/* Photo Gallery with Filter Tabs */}
