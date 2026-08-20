@@ -151,6 +151,18 @@ export default function AdminPage() {
     }
   }, [isAuthenticated]);
 
+  // Global Escape key listener to close modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedBooking(null);
+        setActionType(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/session", {
@@ -228,7 +240,8 @@ export default function AdminPage() {
     }
   };
 
-  const handleSaveModalAction = async () => {
+  const handleSaveModalAction = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!selectedBooking) return;
     setActionLoading(true);
 
@@ -862,8 +875,21 @@ export default function AdminPage() {
 
       {/* Modal Actions */}
       {selectedBooking && actionType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#181715] rounded-3xl border-2 border-[#C9A227]/40 shadow-2xl max-w-lg w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedBooking(null);
+              setActionType(null);
+            }
+          }}
+        >
+          <form
+            onSubmit={handleSaveModalAction}
+            className="bg-white dark:bg-[#181715] rounded-3xl border-2 border-[#C9A227]/40 shadow-2xl max-w-lg w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto"
+          >
             <div className="flex justify-between items-center pb-3 border-b border-[#FAF8F5] dark:border-[#26231E]">
               <div>
                 <span className="text-xs uppercase tracking-wider font-bold text-[#C9A227]">
@@ -875,8 +901,12 @@ export default function AdminPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedBooking(null)}
+                onClick={() => {
+                  setSelectedBooking(null);
+                  setActionType(null);
+                }}
                 className="text-gray-400 hover:text-white p-1 rounded-full cursor-pointer"
+                title="Close (Esc)"
               >
                 ✕
               </button>
@@ -927,7 +957,7 @@ export default function AdminPage() {
                   <select
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value as BookingStatus)}
-                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm font-semibold"
+                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
                   >
                     <option value="PENDING">PENDING</option>
                     <option value="CONFIRMED">CONFIRMED (Approve &amp; Send Email)</option>
@@ -946,7 +976,7 @@ export default function AdminPage() {
                       placeholder="e.g. Patient requested cancellation"
                       value={cancellationReason}
                       onChange={(e) => setCancellationReason(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] text-xs"
+                      className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] text-xs focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
                     />
                   </div>
                 )}
@@ -963,7 +993,7 @@ export default function AdminPage() {
                     type="date"
                     value={rescheduleDate}
                     onChange={(e) => setRescheduleDate(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm"
+                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
                   />
                 </div>
 
@@ -974,7 +1004,7 @@ export default function AdminPage() {
                   <select
                     value={rescheduleSlot}
                     onChange={(e) => setRescheduleSlot(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm"
+                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
                   >
                     {TIME_SLOTS.map((slot) => (
                       <option key={slot} value={slot}>
@@ -997,7 +1027,7 @@ export default function AdminPage() {
                     placeholder="e.g. Tooth #36 obturated successfully. No pain reported."
                     value={doctorNotes}
                     onChange={(e) => setDoctorNotes(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] text-xs"
+                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] text-xs focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
                   />
                 </div>
 
@@ -1010,7 +1040,7 @@ export default function AdminPage() {
                     placeholder="e.g. Tab Zerodol-SP BD x 3 days"
                     value={prescription}
                     onChange={(e) => setPrescription(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] text-xs"
+                    className="w-full p-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] text-xs focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227]"
                   />
                 </div>
               </div>
@@ -1019,22 +1049,25 @@ export default function AdminPage() {
             <div className="flex justify-end gap-3 pt-3 border-t border-[#FAF8F5] dark:border-[#26231E]">
               <button
                 type="button"
-                onClick={() => setSelectedBooking(null)}
+                onClick={() => {
+                  setSelectedBooking(null);
+                  setActionType(null);
+                }}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-500 hover:text-gray-700 cursor-pointer"
               >
-                Cancel
+                Cancel (Esc)
               </button>
 
               <button
-                type="button"
+                type="submit"
                 disabled={actionLoading}
-                onClick={handleSaveModalAction}
-                className="px-6 py-2.5 rounded-xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-xs shadow-lg disabled:opacity-50 cursor-pointer"
+                className="px-6 py-2.5 rounded-xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-xs shadow-lg disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
               >
-                {actionLoading ? "Updating..." : "Save & Dispatch Email Notification"}
+                {actionLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>{actionLoading ? "Updating..." : "Save & Dispatch Email Notification"}</span>
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
     </div>

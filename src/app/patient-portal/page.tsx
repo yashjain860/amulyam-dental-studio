@@ -361,10 +361,15 @@ export default function PatientCarePassPage() {
                       <input
                         type="email"
                         required
+                        autoComplete="email"
+                        inputMode="email"
                         placeholder="you@example.com"
                         value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                        onChange={(e) => {
+                          setError("");
+                          setLoginEmail(e.target.value);
+                        }}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                       />
                     </div>
                   </div>
@@ -378,10 +383,14 @@ export default function PatientCarePassPage() {
                       <input
                         type="password"
                         required
+                        autoComplete="current-password"
                         placeholder="••••••••"
                         value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                        onChange={(e) => {
+                          setError("");
+                          setLoginPassword(e.target.value);
+                        }}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                       />
                     </div>
                   </div>
@@ -389,9 +398,10 @@ export default function PatientCarePassPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 rounded-2xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-sm shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                    className="w-full py-3.5 rounded-2xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-sm shadow-lg transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                   >
-                    {loading ? "Signing In..." : "Sign In to Care Portal"}
+                    {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
+                    <span>{loading ? "Signing In..." : "Sign In to Care Portal"}</span>
                   </button>
                 </form>
               )}
@@ -408,10 +418,14 @@ export default function PatientCarePassPage() {
                       <input
                         type="text"
                         required
+                        autoComplete="name"
                         placeholder="Rahul Sharma"
                         value={regName}
-                        onChange={(e) => setRegName(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                        onChange={(e) => {
+                          setError("");
+                          setRegName(e.target.value);
+                        }}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                       />
                     </div>
                   </div>
@@ -424,10 +438,15 @@ export default function PatientCarePassPage() {
                       <input
                         type="email"
                         required
+                        autoComplete="email"
+                        inputMode="email"
                         placeholder="you@example.com"
                         value={regEmail}
-                        onChange={(e) => setRegEmail(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                        onChange={(e) => {
+                          setError("");
+                          setRegEmail(e.target.value);
+                        }}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                       />
                     </div>
 
@@ -438,10 +457,15 @@ export default function PatientCarePassPage() {
                       <input
                         type="tel"
                         required
+                        autoComplete="tel"
+                        inputMode="tel"
                         placeholder="+91 98XXX XXXXX"
                         value={regPhone}
-                        onChange={(e) => setRegPhone(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                        onChange={(e) => {
+                          setError("");
+                          setRegPhone(e.target.value);
+                        }}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                       />
                     </div>
                   </div>
@@ -454,19 +478,24 @@ export default function PatientCarePassPage() {
                       type="password"
                       required
                       minLength={6}
+                      autoComplete="new-password"
                       placeholder="••••••••"
                       value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                      onChange={(e) => {
+                        setError("");
+                        setRegPassword(e.target.value);
+                      }}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 rounded-2xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-sm shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                    className="w-full py-3.5 rounded-2xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-sm shadow-lg transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                   >
-                    {loading ? "Creating Account..." : "Create Free Patient Account"}
+                    {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
+                    <span>{loading ? "Creating Account..." : "Create Free Patient Account"}</span>
                   </button>
                 </form>
               )}
@@ -485,8 +514,11 @@ export default function PatientCarePassPage() {
                         required
                         placeholder="e.g. ADS-2026-8941"
                         value={lookupRef}
-                        onChange={(e) => setLookupRef(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                        onChange={(e) => {
+                          setError("");
+                          setLookupRef(e.target.value);
+                        }}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                       />
                     </div>
                   </div>
@@ -500,10 +532,14 @@ export default function PatientCarePassPage() {
                       <input
                         type="tel"
                         required
+                        inputMode="tel"
                         placeholder="+91 98XXX XXXXX"
                         value={lookupPhone}
-                        onChange={(e) => setLookupPhone(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                        onChange={(e) => {
+                          setError("");
+                          setLookupPhone(e.target.value);
+                        }}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                       />
                     </div>
                   </div>
@@ -511,9 +547,10 @@ export default function PatientCarePassPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 rounded-2xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-sm shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                    className="w-full py-3.5 rounded-2xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-sm shadow-lg transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                   >
-                    {loading ? "Verifying..." : "Verify & Access Care Pass"}
+                    {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
+                    <span>{loading ? "Searching Records..." : "Access Verified Booking"}</span>
                   </button>
                 </form>
               )}

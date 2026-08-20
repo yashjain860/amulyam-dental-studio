@@ -132,10 +132,14 @@ export default function ContactPage() {
                         <input
                           type="text"
                           required
+                          autoComplete="given-name"
                           placeholder="e.g. Rahul"
                           value={formData.firstName}
-                          onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                          onChange={(e) => {
+                            setError("");
+                            setFormData({ ...formData, firstName: e.target.value });
+                          }}
+                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                         />
                       </div>
 
@@ -145,10 +149,14 @@ export default function ContactPage() {
                         </label>
                         <input
                           type="text"
+                          autoComplete="family-name"
                           placeholder="e.g. Sharma"
                           value={formData.lastName}
-                          onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                          onChange={(e) => {
+                            setError("");
+                            setFormData({ ...formData, lastName: e.target.value });
+                          }}
+                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                         />
                       </div>
                     </div>
@@ -161,10 +169,15 @@ export default function ContactPage() {
                         <input
                           type="email"
                           required
+                          autoComplete="email"
+                          inputMode="email"
                           placeholder="you@example.com"
                           value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                          onChange={(e) => {
+                            setError("");
+                            setFormData({ ...formData, email: e.target.value });
+                          }}
+                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                         />
                       </div>
 
@@ -175,10 +188,15 @@ export default function ContactPage() {
                         <input
                           type="tel"
                           required
+                          autoComplete="tel"
+                          inputMode="tel"
                           placeholder="+91 XXXXX XXXXX"
                           value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                          onChange={(e) => {
+                            setError("");
+                            setFormData({ ...formData, phone: e.target.value });
+                          }}
+                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                         />
                       </div>
                     </div>
@@ -193,7 +211,7 @@ export default function ContactPage() {
                           onChange={(e) =>
                             setFormData({ ...formData, serviceOfInterest: e.target.value })
                           }
-                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                         >
                           {CLINIC_SERVICES.map((s) => (
                             <option key={s.id} value={s.title}>
@@ -212,8 +230,11 @@ export default function ContactPage() {
                           type="text"
                           placeholder="How can we help you?"
                           value={formData.subject}
-                          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                          onChange={(e) => {
+                            setError("");
+                            setFormData({ ...formData, subject: e.target.value });
+                          }}
+                          className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                         />
                       </div>
                     </div>
@@ -227,8 +248,11 @@ export default function ContactPage() {
                         required
                         placeholder="Describe your query, tooth pain, or requirement in detail..."
                         value={formData.message}
-                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                        onChange={(e) => {
+                          setError("");
+                          setFormData({ ...formData, message: e.target.value });
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                       />
                     </div>
 
@@ -238,7 +262,7 @@ export default function ContactPage() {
                       className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#C9A227] to-[#DDB83C] hover:from-[#DDB83C] hover:to-[#C9A227] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50 cursor-pointer"
                     >
                       <Send className="w-4 h-4" />
-                      <span>{loading ? "Sending..." : "Send Message to Clinic"}</span>
+                      <span>{loading ? "Sending Message..." : "Send Message to Clinic (↵)"}</span>
                     </button>
                   </form>
                 )}

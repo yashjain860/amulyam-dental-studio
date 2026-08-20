@@ -293,8 +293,8 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
       ? selectedServices[0].category
       : "Custom Dental Treatment Package";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
     setError("");
 
@@ -646,13 +646,18 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
 
       {/* STEP 3: PATIENT INFORMATION & AUTH */}
       {step === 3 && (
-        <div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleNext();
+          }}
+        >
           <div className="mb-5 sm:mb-6">
             <h2 className="text-xl sm:text-3xl font-bold text-[#1A1A1A] dark:text-[#F8F6F2]">
               Patient Contact &amp; Care Details
             </h2>
             <p className="text-xs sm:text-sm text-[#7A7265] dark:text-[#A39E93] mt-1">
-              We will send your digital appointment pass and preparation guidelines to these details.
+              We will send your digital appointment pass and preparation guidelines to these details. Press <strong>Enter ↵</strong> to continue.
             </p>
           </div>
 
@@ -708,10 +713,14 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
                   <input
                     type="text"
                     required
+                    autoComplete="name"
                     placeholder="e.g. Rahul Sharma"
                     value={formData.patientName}
-                    onChange={(e) => setFormData({ ...formData, patientName: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                    onChange={(e) => {
+                      setError("");
+                      setFormData({ ...formData, patientName: e.target.value });
+                    }}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                   />
                 </div>
               </div>
@@ -725,10 +734,15 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
                   <input
                     type="tel"
                     required
+                    autoComplete="tel"
+                    inputMode="tel"
                     placeholder="+91 98XXX XXXXX"
                     value={formData.patientPhone}
-                    onChange={(e) => setFormData({ ...formData, patientPhone: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                    onChange={(e) => {
+                      setError("");
+                      setFormData({ ...formData, patientPhone: e.target.value });
+                    }}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                   />
                 </div>
               </div>
@@ -744,10 +758,15 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
                   <input
                     type="email"
                     required
+                    autoComplete="email"
+                    inputMode="email"
                     placeholder="you@example.com"
                     value={formData.patientEmail}
-                    onChange={(e) => setFormData({ ...formData, patientEmail: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                    onChange={(e) => {
+                      setError("");
+                      setFormData({ ...formData, patientEmail: e.target.value });
+                    }}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                   />
                 </div>
               </div>
@@ -762,8 +781,11 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
                   max={110}
                   placeholder="e.g. 28"
                   value={formData.age}
-                  onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                  onChange={(e) => {
+                    setError("");
+                    setFormData({ ...formData, age: e.target.value });
+                  }}
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                 />
               </div>
             </div>
@@ -779,10 +801,11 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
                 </div>
                 <input
                   type="password"
+                  autoComplete="new-password"
                   placeholder="Enter a secure password (min 6 chars) to access portal anytime"
                   value={accountPassword}
                   onChange={(e) => setAccountPassword(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-white dark:bg-[#121110] text-xs focus:outline-none focus:border-[#C9A227]"
+                  className="w-full px-3.5 py-2 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-white dark:bg-[#121110] text-xs focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
                 />
               </div>
             )}
@@ -796,22 +819,29 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
                 placeholder="Mention any tooth sensitivity, pain, past root canals, or questions for Dr. Shreya..."
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:border-[#C9A227]"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/30 focus:border-[#C9A227] transition-all"
               />
             </div>
           </div>
-        </div>
+
+          <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
+        </form>
       )}
 
       {/* STEP 4: REVIEW & CONFIRM */}
       {step === 4 && (
-        <div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
           <div className="mb-5 sm:mb-6">
             <h2 className="text-xl sm:text-3xl font-bold text-[#1A1A1A] dark:text-[#F8F6F2]">
               Review &amp; Instant Confirmation
             </h2>
             <p className="text-xs sm:text-sm text-[#7A7265] dark:text-[#A39E93] mt-1">
-              Please double check your appointment summary before confirming.
+              Please double check your appointment summary before confirming. Press <strong>Enter ↵</strong> to finalize.
             </p>
           </div>
 
@@ -872,7 +902,9 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
               Instant confirmation will be sent to <strong>{formData.patientEmail}</strong>. Free cancellation or rescheduling anytime.
             </span>
           </div>
-        </div>
+
+          <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
+        </form>
       )}
 
       {/* Navigation Buttons */}
