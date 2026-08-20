@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { Lock, ShieldCheck, ArrowRight, AlertCircle } from "lucide-react";
+import { Lock, ShieldCheck, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  ADMIN_COOKIE_NAME,
+  setClientCookie,
+  getClientCookie,
+  SessionUser,
+} from "@/lib/auth";
 import MotionReveal from "@/components/ui/MotionReveal";
 
 export default function AdminLoginPage() {
@@ -11,22 +16,65 @@ export default function AdminLoginPage() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Check if already authenticated and redirect immediately
+  useEffect(() => {
+    const verifyExistingAdmin = async () => {
+      try {
+        const cookie = getClientCookie(ADMIN_COOKIE_NAME);
+        const local = localStorage.getItem("amulyam_admin_session");
+
+        if (cookie || local) {
+          router.replace("/admin");
+          return;
+        }
+
+        const res = await fetch("/api/auth/session");
+        const data = await res.json();
+        if (data.admin) {
+          router.replace("/admin");
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+
+    verifyExistingAdmin();
+  }, [router]);
 
   const handlePinAuth = (e: React.FormEvent) => {
     e.preventDefault();
     if (pin === "1234" || pin === "admin88" || pin === "amulyam") {
+      const adminSession: SessionUser = {
+        name: "Dr. Shreya Nidhi (Admin)",
+        email: "amulyamdentalstudio@gmail.com",
+        role: "admin",
+      };
+
+      setClientCookie(ADMIN_COOKIE_NAME, JSON.stringify(adminSession), 30);
+      localStorage.setItem("amulyam_admin_session", JSON.stringify(adminSession));
       router.push("/admin");
     } else {
-      setError("Invalid Administrative Security PIN.");
+      setError("Invalid Administrative Security PIN. (Default: 1234)");
     }
   };
 
   const handleGoogleAuth = () => {
-    setLoading(true);
-    setTimeout(() => {
-      router.push("/admin");
-    }, 600);
+    window.location.href = "/api/auth/google?role=admin&redirectUrl=/admin";
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="py-24 text-center text-sm text-[#888] flex items-center justify-center gap-2">
+        <RefreshCw className="w-4 h-4 animate-spin text-[#C9A227]" />
+        <span>Checking administrative credentials...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="py-20 md:py-28 min-h-[85vh] flex items-center justify-center px-4">
@@ -51,7 +99,7 @@ export default function AdminLoginPage() {
             </div>
           )}
 
-          {/* Google Sign-in */}
+          {/* Real Google OAuth Admin Button */}
           <button
             type="button"
             onClick={handleGoogleAuth}
@@ -90,7 +138,7 @@ export default function AdminLoginPage() {
           <form onSubmit={handlePinAuth} className="space-y-4">
             <input
               type="password"
-              placeholder="Security PIN (e.g. 1234)"
+              placeholder="Security PIN (Default: 1234)"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
               className="w-full text-center tracking-widest text-lg font-mono font-bold py-3.5 px-4 rounded-2xl border border-[#C9A227]/40 bg-[#FAF8F5] dark:bg-[#121110] focus:outline-none focus:border-[#C9A227]"

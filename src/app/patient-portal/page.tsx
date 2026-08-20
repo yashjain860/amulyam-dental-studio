@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   User,
@@ -15,18 +15,90 @@ import {
   ArrowRight,
   LogOut,
   ShieldCheck,
+  RefreshCw,
 } from "lucide-react";
 import { Booking } from "@/lib/types";
 import { CLINIC_INFO } from "@/lib/constants";
+import {
+  PATIENT_COOKIE_NAME,
+  setClientCookie,
+  getClientCookie,
+  removeClientCookie,
+  SessionUser,
+} from "@/lib/auth";
 import MotionReveal from "@/components/ui/MotionReveal";
 
 export default function PatientCarePassPage() {
   const [identifier, setIdentifier] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; phone: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pageInitializing, setPageInitializing] = useState(true);
   const [error, setError] = useState("");
+
+  // Check existing session on page mount
+  const checkSession = async () => {
+    try {
+      const res = await fetch("/api/auth/session");
+      const data = await res.json();
+
+      let activePatient: SessionUser | null = data.patient;
+
+      if (!activePatient) {
+        const local = localStorage.getItem("amulyam_patient_session");
+        if (local) {
+          try {
+            activePatient = JSON.parse(local);
+          } catch (e) {}
+        }
+      }
+
+      if (activePatient) {
+        setCurrentUser(activePatient);
+        setIsLoggedIn(true);
+        await loadBookingsForUser(activePatient.email, activePatient.phone || "", activePatient.name);
+      }
+    } catch (e) {
+      console.error("Session check error:", e);
+    } finally {
+      setPageInitializing(false);
+    }
+  };
+
+  useEffect(() => {
+    checkSession();
+  }, []);
+
+  const loadBookingsForUser = async (email: string, phone: string, name: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/bookings");
+      const data = await res.json();
+      if (!data.success) throw new Error("Failed to retrieve bookings");
+
+      const e = (email || "").toLowerCase();
+      const p = (phone || "").replace(/\D/g, "");
+      const n = (name || "").toLowerCase();
+
+      const matches = data.bookings.filter((b: Booking) => {
+        const bPhone = (b.patientPhone || "").replace(/\D/g, "");
+        const bEmail = (b.patientEmail || "").toLowerCase();
+        const bName = (b.patientName || "").toLowerCase();
+        return (
+          (e && bEmail === e) ||
+          (p && bPhone.includes(p)) ||
+          (n && bName.includes(n))
+        );
+      });
+
+      setUserBookings(matches.length > 0 ? matches : data.bookings.slice(0, 2));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,13 +131,20 @@ export default function PatientCarePassPage() {
         return;
       }
 
-      setUserBookings(matches);
-      setCurrentUser({
+      const patientData: SessionUser = {
         name: matches[0].patientName,
         email: matches[0].patientEmail,
         phone: matches[0].patientPhone,
-      });
+        role: "patient",
+      };
+
+      setUserBookings(matches);
+      setCurrentUser(patientData);
       setIsLoggedIn(true);
+
+      // Persist session across future visits
+      setClientCookie(PATIENT_COOKIE_NAME, JSON.stringify(patientData), 30);
+      localStorage.setItem("amulyam_patient_session", JSON.stringify(patientData));
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
@@ -74,33 +153,34 @@ export default function PatientCarePassPage() {
   };
 
   const handleGoogleLogin = () => {
-    setLoading(true);
-    setTimeout(async () => {
-      try {
-        const res = await fetch("/api/bookings");
-        const data = await res.json();
-        const list = data.bookings || [];
-        setUserBookings(list.slice(0, 3));
-        setCurrentUser({
-          name: "Rahul Sharma",
-          email: "rahul.sharma@gmail.com",
-          phone: "+91 98260 12345",
-        });
-        setIsLoggedIn(true);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    }, 600);
+    window.location.href = "/api/auth/google?role=patient&redirectUrl=/patient-portal";
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "patient" }),
+      });
+    } catch (e) {}
+
+    removeClientCookie(PATIENT_COOKIE_NAME);
+    localStorage.removeItem("amulyam_patient_session");
     setIsLoggedIn(false);
     setCurrentUser(null);
     setUserBookings([]);
     setIdentifier("");
   };
+
+  if (pageInitializing) {
+    return (
+      <div className="py-24 text-center text-sm text-[#888] flex items-center justify-center gap-2">
+        <RefreshCw className="w-4 h-4 animate-spin text-[#C9A227]" />
+        <span>Verifying care access credentials...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="py-12 md:py-20 min-h-[80vh] relative">
@@ -128,11 +208,10 @@ export default function PatientCarePassPage() {
                 </div>
               )}
 
-              {/* 1-Click Google Verification */}
+              {/* Real Google OAuth Button */}
               <button
                 type="button"
                 onClick={handleGoogleLogin}
-                disabled={loading}
                 className="w-full py-3.5 px-4 rounded-2xl border border-[#E5DFD5] dark:border-[#332F28] bg-white dark:bg-[#1C1A17] hover:bg-[#FAF8F5] dark:hover:bg-[#26231E] font-bold text-xs sm:text-sm flex items-center justify-center gap-3 shadow-sm transition-all cursor-pointer"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -210,7 +289,7 @@ export default function PatientCarePassPage() {
             <div className="bg-white dark:bg-[#181715] p-6 sm:p-8 rounded-3xl border border-[#C9A227]/30 shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-[#C9A227]/20 text-[#C9A227] flex items-center justify-center font-black text-xl">
-                  {currentUser?.name.charAt(0)}
+                  {currentUser?.name ? currentUser.name.charAt(0) : "P"}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -222,7 +301,8 @@ export default function PatientCarePassPage() {
                     </span>
                   </div>
                   <p className="text-xs text-[#888] mt-0.5">
-                    {currentUser?.phone} • {currentUser?.email}
+                    {currentUser?.phone ? `${currentUser.phone} • ` : ""}
+                    {currentUser?.email}
                   </p>
                 </div>
               </div>
@@ -252,106 +332,118 @@ export default function PatientCarePassPage() {
                 <span>Scheduled Treatment Sessions &amp; History</span>
               </h2>
 
-              {userBookings.map((b) => (
-                <div
-                  key={b.id}
-                  className="bg-white dark:bg-[#181715] p-6 sm:p-8 rounded-3xl border border-[#C9A227]/25 shadow-lg space-y-4"
-                >
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[#FAF8F5] dark:border-[#26231E] pb-4">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-[#C9A227] tracking-wider block">
-                        Booking Reference: {b.refNumber}
-                      </span>
-                      <h3 className="text-lg sm:text-xl font-bold text-[#1A1A1A] dark:text-white mt-0.5">
-                        {b.serviceName}
-                      </h3>
-                    </div>
-
-                    <span
-                      className={`text-xs font-black uppercase px-3.5 py-1 rounded-full ${
-                        b.status === "CONFIRMED"
-                          ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300 border border-green-300 dark:border-green-800"
-                          : b.status === "COMPLETED"
-                          ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-800"
-                          : b.status === "CANCELLED"
-                          ? "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 border border-red-300 dark:border-red-800"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-800"
-                      }`}
-                    >
-                      {b.status}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                    <div>
-                      <span className="text-[#888] block">Date</span>
-                      <span className="font-bold text-[#1A1A1A] dark:text-white mt-0.5 block text-sm">
-                        {b.appointmentDate}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[#888] block">Time Slot</span>
-                      <span className="font-bold text-green-700 dark:text-green-400 mt-0.5 block text-sm">
-                        {b.timeSlot}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[#888] block">Attending Doctor</span>
-                      <span className="font-bold text-[#1A1A1A] dark:text-white mt-0.5 block text-sm">
-                        {b.preferredDoctor}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[#888] block">Studio Location</span>
-                      <span className="text-[#555] dark:text-[#AAA] mt-0.5 block truncate">
-                        Awadhpuri, Bhopal
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Doctor Findings */}
-                  {b.doctorNotes && (
-                    <div className="p-4 bg-[#FAF8F5] dark:bg-[#121110] rounded-2xl border border-[#C9A227]/20 text-xs space-y-1">
-                      <span className="font-bold text-[#C9A227] block">
-                        👨‍⚕️ Clinical Notes from Doctor:
-                      </span>
-                      <p className="text-[#444] dark:text-[#CCC]">{b.doctorNotes}</p>
-                    </div>
-                  )}
-
-                  {/* Prescriptions */}
-                  {b.prescription && (
-                    <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-2xl border border-green-200 dark:border-green-800/40 text-xs space-y-1">
-                      <span className="font-bold text-green-700 dark:text-green-400 block">
-                        💊 Prescription &amp; Post-Care Regimen:
-                      </span>
-                      <p className="text-green-900 dark:text-green-200">{b.prescription}</p>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="pt-2 flex flex-wrap gap-2.5 justify-end">
-                    <Link
-                      href={`/booking-confirmation/${b.refNumber}`}
-                      className="px-4 py-2.5 rounded-xl bg-[#FAF8F5] dark:bg-[#22201C] hover:bg-[#C9A227]/15 border border-[#C9A227]/30 text-xs font-semibold text-[#1A1A1A] dark:text-white flex items-center gap-1.5"
-                    >
-                      <Download className="w-3.5 h-3.5 text-[#C9A227]" />
-                      <span>Digital Pass &amp; Calendar Sync</span>
-                    </Link>
-
-                    <a
-                      href={`https://wa.me/919203604211?text=${encodeURIComponent(
-                        `Hello Dr. Shreya, I would like to inquire about my appointment ${b.refNumber}.`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white text-xs font-bold flex items-center gap-1.5"
-                    >
-                      <span>WhatsApp Care Desk</span>
-                    </a>
-                  </div>
+              {userBookings.length === 0 ? (
+                <div className="p-8 text-center bg-white dark:bg-[#181715] rounded-3xl border border-[#C9A227]/20">
+                  <p className="text-sm text-[#888]">No appointments found for this account.</p>
+                  <Link
+                    href="/book"
+                    className="mt-3 inline-block bg-[#C9A227] text-white text-xs font-bold px-4 py-2 rounded-xl"
+                  >
+                    Book Your First Appointment →
+                  </Link>
                 </div>
-              ))}
+              ) : (
+                userBookings.map((b) => (
+                  <div
+                    key={b.id}
+                    className="bg-white dark:bg-[#181715] p-6 sm:p-8 rounded-3xl border border-[#C9A227]/25 shadow-lg space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[#FAF8F5] dark:border-[#26231E] pb-4">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-[#C9A227] tracking-wider block">
+                          Booking Reference: {b.refNumber}
+                        </span>
+                        <h3 className="text-lg sm:text-xl font-bold text-[#1A1A1A] dark:text-white mt-0.5">
+                          {b.serviceName}
+                        </h3>
+                      </div>
+
+                      <span
+                        className={`text-xs font-black uppercase px-3.5 py-1 rounded-full ${
+                          b.status === "CONFIRMED"
+                            ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300 border border-green-300 dark:border-green-800"
+                            : b.status === "COMPLETED"
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-800"
+                            : b.status === "CANCELLED"
+                            ? "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 border border-red-300 dark:border-red-800"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-800"
+                        }`}
+                      >
+                        {b.status}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                      <div>
+                        <span className="text-[#888] block">Date</span>
+                        <span className="font-bold text-[#1A1A1A] dark:text-white mt-0.5 block text-sm">
+                          {b.appointmentDate}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#888] block">Time Slot</span>
+                        <span className="font-bold text-green-700 dark:text-green-400 mt-0.5 block text-sm">
+                          {b.timeSlot}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#888] block">Attending Doctor</span>
+                        <span className="font-bold text-[#1A1A1A] dark:text-white mt-0.5 block text-sm">
+                          {b.preferredDoctor}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#888] block">Studio Location</span>
+                        <span className="text-[#555] dark:text-[#AAA] mt-0.5 block truncate">
+                          Awadhpuri, Bhopal
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Doctor Findings */}
+                    {b.doctorNotes && (
+                      <div className="p-4 bg-[#FAF8F5] dark:bg-[#121110] rounded-2xl border border-[#C9A227]/20 text-xs space-y-1">
+                        <span className="font-bold text-[#C9A227] block">
+                          👨‍⚕️ Clinical Notes from Doctor:
+                        </span>
+                        <p className="text-[#444] dark:text-[#CCC]">{b.doctorNotes}</p>
+                      </div>
+                    )}
+
+                    {/* Prescriptions */}
+                    {b.prescription && (
+                      <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-2xl border border-green-200 dark:border-green-800/40 text-xs space-y-1">
+                        <span className="font-bold text-green-700 dark:text-green-400 block">
+                          💊 Prescription &amp; Post-Care Regimen:
+                        </span>
+                        <p className="text-green-900 dark:text-green-200">{b.prescription}</p>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="pt-2 flex flex-wrap gap-2.5 justify-end">
+                      <Link
+                        href={`/booking-confirmation/${b.refNumber}`}
+                        className="px-4 py-2.5 rounded-xl bg-[#FAF8F5] dark:bg-[#22201C] hover:bg-[#C9A227]/15 border border-[#C9A227]/30 text-xs font-semibold text-[#1A1A1A] dark:text-white flex items-center gap-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5 text-[#C9A227]" />
+                        <span>Digital Pass &amp; Calendar Sync</span>
+                      </Link>
+
+                      <a
+                        href={`https://wa.me/919203604211?text=${encodeURIComponent(
+                          `Hello Dr. Shreya, I would like to inquire about my appointment ${b.refNumber}.`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white text-xs font-bold flex items-center gap-1.5"
+                      >
+                        <span>WhatsApp Care Desk</span>
+                      </a>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
