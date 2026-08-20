@@ -104,13 +104,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <Link href="/contact" className="hover:text-[#DDB83C] transition-colors">
-                    Contact Us & Directions
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/admin" className="text-xs text-[#8A8175] hover:text-[#C9A227] flex items-center gap-1.5 pt-2">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Clinic Admin Portal</span>
+                    Contact Us &amp; Directions
                   </Link>
                 </li>
               </ul>
