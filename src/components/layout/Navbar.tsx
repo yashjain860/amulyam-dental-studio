@@ -95,10 +95,11 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={openSearch}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#C9A227]/30 hover:border-[#C9A227] text-[#7A7265] dark:text-[#A8A29E] hover:text-[#C9A227] text-xs bg-white/60 dark:bg-[#1C1A17]/60 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full border border-[#C9A227]/30 hover:border-[#C9A227] text-[#7A7265] dark:text-[#A8A29E] hover:text-[#C9A227] text-xs bg-white/60 dark:bg-[#1C1A17]/60 transition-all cursor-pointer"
                 title="Search treatments & booking ID (Cmd+K)"
+                aria-label="Search dental treatments"
               >
-                <Search className="w-3.5 h-3.5 text-[#C9A227]" />
+                <Search className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-[#C9A227]" />
                 <span className="hidden md:inline">Search...</span>
                 <kbd className="hidden md:inline text-[10px] bg-[#FAF8F5] dark:bg-[#2A2621] px-1.5 py-0.5 rounded border border-[#DDD] dark:border-[#444] font-mono">
                   ⌘K
