@@ -1059,18 +1059,48 @@ export function createCashRegisterEntry(
   return newEntry;
 }
 
-// ----------------------------------------------------
-// PATIENT CRM & DIRECTORY OPERATIONS
-// ----------------------------------------------------
 export function getAllPatients(): UserAccount[] {
   const db = readDb();
-  return (db.users || []).filter((u) => u.role === "patient");
+  const existingPatients = (db.users || []).filter((u) => u.role === "patient");
+  const seenEmails = new Set(existingPatients.map((p) => p.email.toLowerCase()));
+  const seenPhones = new Set(existingPatients.map((p) => (p.phone || "").replace(/\D/g, "")));
+
+  const syntheticFromBookings: UserAccount[] = [];
+
+  for (const b of db.bookings || []) {
+    const cleanEmail = (b.patientEmail || "").toLowerCase();
+    const cleanPhone = (b.patientPhone || "").replace(/\D/g, "");
+
+    if (cleanEmail && !seenEmails.has(cleanEmail) && (!cleanPhone || !seenPhones.has(cleanPhone))) {
+      seenEmails.add(cleanEmail);
+      if (cleanPhone) seenPhones.add(cleanPhone);
+
+      syntheticFromBookings.push({
+        id: `pat-b-${b.id}`,
+        name: b.patientName,
+        email: b.patientEmail,
+        phone: b.patientPhone,
+        role: "patient",
+        authProvider: "local",
+        age: b.age || 32,
+        gender: b.gender || "Male",
+        bloodGroup: "O+",
+        medicalHistory: "Routine dental evaluation",
+        allergies: "None",
+        source: "WEBSITE",
+        notes: `Booked for ${b.serviceName}`,
+        createdAt: b.createdAt,
+      });
+    }
+  }
+
+  return [...existingPatients, ...syntheticFromBookings];
 }
 
 export function getPatientById(idOrEmail: string): UserAccount | null {
-  const db = readDb();
+  const all = getAllPatients();
   return (
-    (db.users || []).find(
+    all.find(
       (u) => u.id === idOrEmail || u.email.toLowerCase() === idOrEmail.toLowerCase()
     ) || null
   );

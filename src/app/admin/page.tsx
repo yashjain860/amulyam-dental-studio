@@ -562,6 +562,7 @@ export default function AdminPage() {
         {activeTab === "receptionist" && (
           <LiveWaitingRoomQueue
             queue={queue}
+            todayBookings={bookings.filter((b) => b.appointmentDate === todayStr)}
             onRefresh={fetchData}
             onOpenBilling={(token) => {
               setSelectedTokenForModal(token);
