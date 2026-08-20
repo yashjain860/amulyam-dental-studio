@@ -1062,23 +1062,21 @@ export function createCashRegisterEntry(
 export function getAllPatients(): UserAccount[] {
   const db = readDb();
   const existingPatients = (db.users || []).filter((u) => u.role === "patient");
-  const seenEmails = new Set(existingPatients.map((p) => p.email.toLowerCase()));
-  const seenPhones = new Set(existingPatients.map((p) => (p.phone || "").replace(/\D/g, "")));
+  const seenKeys = new Set(
+    existingPatients.map((p) => `${(p.name || "").trim().toLowerCase()}_${(p.phone || "").replace(/\D/g, "")}`)
+  );
 
   const syntheticFromBookings: UserAccount[] = [];
 
   for (const b of db.bookings || []) {
-    const cleanEmail = (b.patientEmail || "").toLowerCase();
-    const cleanPhone = (b.patientPhone || "").replace(/\D/g, "");
-
-    if (cleanEmail && !seenEmails.has(cleanEmail) && (!cleanPhone || !seenPhones.has(cleanPhone))) {
-      seenEmails.add(cleanEmail);
-      if (cleanPhone) seenPhones.add(cleanPhone);
+    const key = `${(b.patientName || "").trim().toLowerCase()}_${(b.patientPhone || "").replace(/\D/g, "")}`;
+    if (b.patientName && !seenKeys.has(key)) {
+      seenKeys.add(key);
 
       syntheticFromBookings.push({
         id: `pat-b-${b.id}`,
         name: b.patientName,
-        email: b.patientEmail,
+        email: b.patientEmail || `${b.patientName.toLowerCase().replace(/\s+/g, ".")}@patient.local`,
         phone: b.patientPhone,
         role: "patient",
         authProvider: "local",
