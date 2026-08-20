@@ -6,13 +6,19 @@ export async function GET(req: NextRequest) {
   const redirectUrl = searchParams.get("redirectUrl") || (role === "admin" ? "/admin" : "/patient-portal");
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const origin = req.headers.get("origin") || req.nextUrl.origin;
+
+  const host = req.headers.get("x-forwarded-host") || req.nextUrl.host;
+  const proto = req.headers.get("x-forwarded-proto") || (req.nextUrl.protocol ? req.nextUrl.protocol.replace(":", "") : "https");
+  const origin = `${proto}://${host}`;
   const redirectUri = `${origin}/api/auth/callback/google`;
 
   if (!clientId) {
-    // If Google Client ID is not configured, fall back to instant session
-    const target = `${origin}/api/auth/callback/google?mock=true&role=${role}&redirectUrl=${encodeURIComponent(redirectUrl)}`;
-    return NextResponse.redirect(target);
+    return NextResponse.json(
+      {
+        error: "Google OAuth credentials (GOOGLE_CLIENT_ID) not configured in server environment.",
+      },
+      { status: 500 }
+    );
   }
 
   const state = Buffer.from(JSON.stringify({ role, redirectUrl })).toString("base64");
