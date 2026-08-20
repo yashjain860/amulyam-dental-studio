@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Lock, ShieldCheck, AlertCircle, RefreshCw } from "lucide-react";
 import {
   ADMIN_COOKIE_NAME,
@@ -152,6 +153,15 @@ export default function AdminLoginPage() {
               Access Control Suite
             </button>
           </form>
+
+          <div className="text-center pt-2 border-t border-[#E8E0D2] dark:border-[#332F28]">
+            <Link
+              href="/patient-portal"
+              className="text-xs text-[#888] hover:text-[#C9A227] transition underline"
+            >
+              👤 Looking for Patient Portal &amp; Care Pass? Click here ➔
+            </Link>
+          </div>
         </div>
       </MotionReveal>
     </div>

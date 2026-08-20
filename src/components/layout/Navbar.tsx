@@ -107,9 +107,7 @@ export default function Navbar() {
               </button>
 
               {/* Theme Switcher (Hidden in Admin panel) */}
-              {!pathname?.startsWith("/admin") && <ThemeToggle />}
-
-              {/* Track Appointment / Care Pass */}
+              {!pathname?.startsWith("/admin") && <ThemeToggle />}              {/* Track Appointment / Care Pass */}
               <Link
                 href="/patient-portal"
                 className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[#C9A227]/40 text-xs font-semibold text-[#1A1A1A] dark:text-white hover:bg-[#C9A227]/10 transition-all cursor-pointer"
@@ -117,6 +115,16 @@ export default function Navbar() {
               >
                 <User className="w-3.5 h-3.5 text-[#C9A227]" />
                 <span className="hidden md:inline">Track Appointment</span>
+              </Link>
+
+              {/* Admin / Doctor Login */}
+              <Link
+                href="/admin"
+                className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/40 text-xs font-bold text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer"
+                title="Doctor & Clinic Staff Login"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                <span>Admin Login</span>
               </Link>
 
               {/* Book Appointment CTA */}
@@ -144,48 +152,32 @@ export default function Navbar() {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-
-          <div className="fixed right-0 top-0 bottom-0 w-4/5 max-w-xs bg-[#FAF8F5] dark:bg-[#181715] border-l border-[#C9A227]/30 p-6 flex flex-col justify-between shadow-2xl z-50 animate-slideLeft">
+        <div data-lenis-prevent className="lg:hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-md">
+          <div data-lenis-prevent className="fixed inset-y-0 right-0 max-w-xs w-full bg-[#FAF8F5] dark:bg-[#1C1A17] shadow-2xl p-6 flex flex-col justify-between overflow-y-auto">
             <div>
-              <div className="flex justify-between items-center pb-4 border-b border-[#C9A227]/20 mb-6">
-                <Image
-                  src="/images/amulyamlogo.png"
-                  alt="Amulyam Dental Studio"
-                  width={140}
-                  height={40}
-                  className="h-9 w-auto object-contain"
-                />
+              <div className="flex items-center justify-between pb-4 border-b border-[#C9A227]/20">
+                <div className="flex items-center gap-2">
+                  <Image
+                    src="/images/amulyamlogo.png"
+                    alt="Amulyam Dental Studio Logo"
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                  />
+                  <span className="font-bold text-sm text-[#1A1A1A] dark:text-white">
+                    Amulyam Dental Studio
+                  </span>
+                </div>
                 <button
+                  type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 rounded-md text-[#C9A227]"
+                  className="p-2 rounded-lg text-[#C9A227] hover:bg-[#C9A227]/10"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
-              {/* Mobile Search Input */}
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  openSearch();
-                }}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-[#22201C] border border-[#C9A227]/30 text-xs text-[#888] mb-4 cursor-pointer"
-              >
-                <span className="flex items-center gap-2">
-                  <Search className="w-4 h-4 text-[#C9A227]" />
-                  <span>Search dental care...</span>
-                </span>
-                <kbd className="text-[10px] font-mono bg-[#FAF8F5] dark:bg-[#333] px-1.5 py-0.5 rounded">
-                  Search
-                </kbd>
-              </button>
-
-              <div className="flex flex-col gap-2">
+              <div className="py-6 flex flex-col gap-3">
                 {navLinks.map((link) => {
                   const isActive = pathname === link.href;
                   return (
@@ -193,10 +185,10 @@ export default function Navbar() {
                       key={link.href}
                       href={link.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`text-base font-semibold py-2.5 px-3 rounded-xl transition-colors ${
+                      className={`text-base font-semibold py-2 px-3 rounded-xl transition-colors ${
                         isActive
-                          ? "bg-[#C9A227]/15 text-[#C9A227]"
-                          : "text-[#3D3A35] dark:text-[#E8E4DC] hover:bg-[#C9A227]/10 hover:text-[#C9A227]"
+                          ? "bg-[#C9A227]/15 text-[#C9A227] font-bold"
+                          : "text-[#1A1A1A] dark:text-white hover:bg-[#C9A227]/10"
                       }`}
                     >
                       {link.label}
@@ -212,6 +204,15 @@ export default function Navbar() {
                   >
                     <User className="w-4 h-4 text-[#C9A227]" />
                     <span>Track My Appointment &amp; Pass</span>
+                  </Link>
+
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-sm font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-2 py-2 px-3 rounded-xl hover:bg-amber-500/10"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-amber-400" />
+                    <span>Doctor &amp; Admin ERP Login</span>
                   </Link>
                 </div>
               </div>

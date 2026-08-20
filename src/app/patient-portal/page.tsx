@@ -251,6 +251,20 @@ export default function PatientCarePassPage() {
         {!isLoggedIn ? (
           /* AUTHENTICATION & ACCESS SUITE */
           <MotionReveal direction="up">
+            {/* Doctor & Staff Quick Switcher Banner */}
+            <div className="max-w-lg mx-auto mb-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-300 shadow-md">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <span>Doctor or Clinic Receptionist?</span>
+              </div>
+              <Link
+                href="/admin/login"
+                className="font-bold underline text-white hover:text-amber-300"
+              >
+                Admin ERP Login ➔
+              </Link>
+            </div>
+
             <div className="max-w-lg mx-auto bg-white dark:bg-[#181715] rounded-3xl border-2 border-[#C9A227]/30 shadow-2xl p-6 sm:p-10 space-y-6">
               <div className="text-center space-y-2">
                 <div className="w-14 h-14 rounded-2xl bg-[#C9A227]/15 text-[#C9A227] flex items-center justify-center mx-auto mb-2">
