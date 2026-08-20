@@ -187,9 +187,9 @@ export async function POST(req: Request) {
     let result: any;
     try {
       result = await executeGeminiWithRotation(requestPayload);
-    } catch (llmErr) {
-      console.error("LLM Rotation error, falling back to intelligent handler:", llmErr);
-      return await handleFallbackChat(messages);
+    } catch (llmErr: any) {
+      console.error("LLM Rotation error, falling back to intelligent handler:", llmErr?.message || llmErr);
+      return await handleFallbackChat(messages, llmErr?.message);
     }
 
     const candidate = result.candidates?.[0];
@@ -295,11 +295,24 @@ function formatToolDirectResponse(name: string, toolResult: any) {
 }
 
 // Intelligent semantic fallback handler with live database tool execution
-async function handleFallbackChat(messages: any[]) {
+async function handleFallbackChat(messages: any[], debugErr?: string) {
   const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
+  const allText = messages.map((m) => m.content).join(" ").toLowerCase();
   const today = new Date().toISOString().split("T")[0];
 
-  // 1. Availability / Slots query (handles typos like "availablity", "slots", "today", "tomorrow")
+  // 1. Check if user provided time slot or wants to book
+  const timeMatch = lastMsg.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
+  const hasEmail = messages.some((m) => /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/.test(m.content));
+  const hasPhone = messages.some((m) => /\b\d{10}\b/.test(m.content.replace(/\D/g, "")));
+
+  if (lastMsg.includes("10 am") || lastMsg.includes("11") || lastMsg.includes("12") || lastMsg.includes("1 pm") || lastMsg.includes("2 pm") || lastMsg.includes("3 pm") || lastMsg.includes("4 pm") || lastMsg.includes("5 pm") || lastMsg.includes("6 pm") || lastMsg.includes("7 pm")) {
+    return NextResponse.json({
+      role: "assistant",
+      content: `👍 Got it! You've selected **${messages[messages.length - 1].content.trim()}** for your visit today (${today}).\n\nTo confirm and generate your **Digital Boarding Pass**, please reply with your **Full Name, Email Address, and Phone Number**.`
+    });
+  }
+
+  // 2. Availability / Slots query (handles typos like "availablity", "slots", "today", "tomorrow")
   if (
     lastMsg.includes("avail") ||
     lastMsg.includes("slot") ||
@@ -318,11 +331,11 @@ async function handleFallbackChat(messages: any[]) {
 
     return NextResponse.json({
       role: "assistant",
-      content: `📅 **Doctor Availability for ${isTomorrow ? "Tomorrow" : "Today"} (${dateStr}):**\n\nDr. Shreya Nidhi has **${slotData.availableSlotsCount} available slots**:\n\n${available.slice(0, 8).map((t) => `• **${t}** (Available)`).join("\n")}\n\nWould you like to book one of these slots? Reply with your **Name, Email, and Phone** to confirm instantly!`
+      content: `📅 **Doctor Availability for ${isTomorrow ? "Tomorrow" : "Today"} (${dateStr}):**\n\nDr. Shreya Nidhi has **${slotData.availableSlotsCount} available slots**:\n\n${available.slice(0, 8).map((t) => `• **${t}** (Available)`).join("\n")}\n\nWhich time works best for you? Reply with your preferred slot and name!`
     });
   }
 
-  // 2. Timings / Location
+  // 3. Timings / Location
   if (lastMsg.includes("timing") || lastMsg.includes("hour") || lastMsg.includes("address") || lastMsg.includes("where") || lastMsg.includes("location")) {
     return NextResponse.json({
       role: "assistant",
@@ -330,12 +343,20 @@ async function handleFallbackChat(messages: any[]) {
     });
   }
 
-  // 3. Treatment Pricing
+  // 4. Treatment Pricing
   if (lastMsg.includes("price") || lastMsg.includes("cost") || lastMsg.includes("fee") || lastMsg.includes("charge") || lastMsg.includes("rct") || lastMsg.includes("whitening") || lastMsg.includes("implant")) {
     const pricing = await getTreatmentPricing(lastMsg);
     return NextResponse.json({
       role: "assistant",
       content: `💰 **Treatment Pricing at Amulyam Dental Studio:**\n\n${pricing.treatments.slice(0, 5).map((t) => `• **${t.name}:** ${t.priceEstimate} (${t.duration})`).join("\n")}\n\n*Note: Exact quote provided during clinical examination by Dr. Shreya Nidhi.*\n\nWould you like to reserve a consultation?`
+    });
+  }
+
+  // 5. Name or contact provided in active session
+  if (messages.length > 2) {
+    return NextResponse.json({
+      role: "assistant",
+      content: `Thank you! I have noted **"${messages[messages.length - 1].content.trim()}"**.\n\nPlease share any remaining details (Name, Email, Phone, and Preferred Slot) so I can finalize your express booking!`
     });
   }
 
