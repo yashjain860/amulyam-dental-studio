@@ -238,18 +238,23 @@ END:VCALENDAR`;
               </div>
 
               {/* QR Code Column */}
-              <div className="md:col-span-4 flex flex-col items-center justify-center p-4 bg-[#FAF8F5] dark:bg-[#121110] rounded-2xl border border-[#C9A227]/20 text-center">
-                <div className="bg-white p-3 rounded-xl shadow-md border border-[#E5DFD5]">
+              <div className="md:col-span-4 flex flex-col items-center justify-center p-5 bg-[#FAF8F5] dark:bg-[#121110] rounded-2xl border border-[#C9A227]/20 text-center">
+                <div className="bg-white p-3.5 rounded-2xl shadow-md border border-[#E5DFD5] hover:scale-105 transition-transform duration-200 cursor-pointer group relative">
                   <QRCodeSVG
-                    value={`AMULYAM_PASS:${booking.refNumber}|${booking.patientName}|${booking.appointmentDate}|${booking.timeSlot}`}
-                    size={120}
+                    value={typeof window !== "undefined" ? `${window.location.origin}/booking-confirmation/${booking.refNumber}` : `https://amulyam.thewebvale.com/booking-confirmation/${booking.refNumber}`}
+                    size={128}
                     level="H"
                     fgColor="#1C1A17"
                   />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8A8175] mt-3">
-                  Scan for Express Check-in
-                </span>
+                <div className="mt-3 text-center">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#C9A227] block">
+                    Digital Check-In Pass
+                  </span>
+                  <p className="text-[10px] text-[#8A8175] dark:text-[#A39E93] mt-0.5 max-w-[180px] leading-tight">
+                    Scan with any phone camera to verify appointment or present at clinic reception.
+                  </p>
+                </div>
               </div>
             </div>
 
