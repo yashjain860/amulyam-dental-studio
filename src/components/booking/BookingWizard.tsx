@@ -59,6 +59,10 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
   const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split("T")[0];
   const [appointmentDate, setAppointmentDate] = useState<string>(tomorrowStr);
   const [selectedSlot, setSelectedSlot] = useState<string>(TIME_SLOTS[1]); // e.g. 10:45 AM
+  const [unavailableSlots, setUnavailableSlots] = useState<string[]>([]);
+  const [isDateClosed, setIsDateClosed] = useState(false);
+  const [closedReason, setClosedReason] = useState("");
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Patient Details & Auth
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -73,6 +77,48 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
     notes: querySource === "cost-estimator" && queryTotal ? `Pre-estimated Package (Est. Total: ₹${queryTotal})` : "",
     preferredDoctor: LEAD_DOCTOR.name,
   });
+
+  // Fetch real-time booked & blocked slots for selected appointment date
+  useEffect(() => {
+    let isCancelled = false;
+    const fetchSlotAvailability = async () => {
+      setLoadingSlots(true);
+      try {
+        const res = await fetch(`/api/admin/slots?date=${appointmentDate}`);
+        const data = await res.json();
+        if (data.success && !isCancelled) {
+          const booked: string[] = data.bookedSlots || [];
+          const override = (data.overrides || []).find((o: any) => o.date === appointmentDate);
+
+          if (override?.isClosedFullDay) {
+            setIsDateClosed(true);
+            setClosedReason(override.reason || "Clinic is closed on this date.");
+            setUnavailableSlots(TIME_SLOTS);
+          } else {
+            setIsDateClosed(false);
+            setClosedReason("");
+            const blocked: string[] = override?.blockedSlots || [];
+            const allUnavailable = Array.from(new Set([...booked, ...blocked]));
+            setUnavailableSlots(allUnavailable);
+
+            // If current selected slot is booked, auto-select first available slot
+            if (allUnavailable.includes(selectedSlot)) {
+              const firstFree = TIME_SLOTS.find((s) => !allUnavailable.includes(s));
+              if (firstFree) setSelectedSlot(firstFree);
+            }
+          }
+        }
+      } catch (e) {
+      } finally {
+        if (!isCancelled) setLoadingSlots(false);
+      }
+    };
+
+    fetchSlotAvailability();
+    return () => {
+      isCancelled = true;
+    };
+  }, [appointmentDate]);
 
   // 1. Restore draft booking progress from sessionStorage on mount (especially after Google OAuth return)
   useEffect(() => {
@@ -544,26 +590,56 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-              {TIME_SLOTS.map((slot) => {
-                const isSelected = selectedSlot === slot;
-                return (
-                  <button
-                    key={slot}
-                    type="button"
-                    onClick={() => setSelectedSlot(slot)}
-                    className={`py-2.5 sm:py-3 px-3 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                      isSelected
-                        ? "border-[#C9A227] bg-[#C9A227] text-white shadow-md"
-                        : "border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-[#333] dark:text-[#DDD] hover:border-[#C9A227] hover:text-[#C9A227]"
-                    }`}
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{slot}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {isDateClosed ? (
+              <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-center">
+                <span className="text-sm font-bold text-amber-900 dark:text-amber-200 block">
+                  Clinic is closed on {formattedSelectedDate}
+                </span>
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                  {closedReason || "Please select another date from the calendar above."}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                {TIME_SLOTS.map((slot) => {
+                  const isBooked = unavailableSlots.includes(slot);
+                  const isSelected = selectedSlot === slot && !isBooked;
+
+                  if (isBooked) {
+                    return (
+                      <div
+                        key={slot}
+                        className="py-2.5 sm:py-3 px-3 rounded-xl border border-[#E5DFD5]/40 dark:border-[#2A2620] bg-gray-100/60 dark:bg-[#151412] text-gray-400 dark:text-gray-600 text-xs sm:text-sm font-medium flex items-center justify-between opacity-50 cursor-not-allowed select-none"
+                      >
+                        <div className="flex items-center gap-1 line-through">
+                          <Clock className="w-3.5 h-3.5 opacity-40" />
+                          <span>{slot}</span>
+                        </div>
+                        <span className="text-[9px] uppercase tracking-wider font-bold text-red-500/80 bg-red-100/60 dark:bg-red-950/50 px-1.5 py-0.5 rounded">
+                          Booked
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setSelectedSlot(slot)}
+                      className={`py-2.5 sm:py-3 px-3 rounded-xl border text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        isSelected
+                          ? "border-[#C9A227] bg-[#C9A227] text-white shadow-md scale-102"
+                          : "border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#1C1A17] text-[#333] dark:text-[#DDD] hover:border-[#C9A227] hover:text-[#C9A227]"
+                      }`}
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{slot}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

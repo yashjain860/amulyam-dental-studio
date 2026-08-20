@@ -321,6 +321,13 @@ export function getSlotOverrides(): ClinicSlotOverride[] {
   return db.slotOverrides || [];
 }
 
+export function getBookedSlotsForDate(date: string): string[] {
+  const db = readDb();
+  return (db.bookings || [])
+    .filter((b) => b.appointmentDate === date && b.status !== "CANCELLED")
+    .map((b) => b.timeSlot);
+}
+
 export function saveSlotOverride(override: ClinicSlotOverride): ClinicSlotOverride[] {
   const db = readDb();
   const existingIdx = db.slotOverrides.findIndex((o) => o.date === override.date);

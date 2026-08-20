@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllBookings, createBooking, getBookingsForUser, createUser, getUserByEmail } from "@/lib/db";
+import { getAllBookings, createBooking, getBookingsForUser, createUser, getUserByEmail, getBookedSlotsForDate } from "@/lib/db";
 import { PATIENT_COOKIE_NAME, ADMIN_COOKIE_NAME, SessionUser } from "@/lib/auth";
 import {
   generatePatientConfirmationEmail,
@@ -100,6 +100,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Missing required fields for booking." },
         { status: 400 }
+      );
+    }
+
+    // Check if slot is already reserved
+    const existingBookedSlots = getBookedSlotsForDate(appointmentDate);
+    if (existingBookedSlots.includes(timeSlot)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `The ${timeSlot} slot on ${appointmentDate} has already been reserved by another patient. Please select a different slot.`,
+        },
+        { status: 409 }
       );
     }
 

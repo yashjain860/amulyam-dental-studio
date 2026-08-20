@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSlotOverrides, saveSlotOverride } from "@/lib/db";
+import { getSlotOverrides, saveSlotOverride, getBookedSlotsForDate } from "@/lib/db";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const date = searchParams.get("date");
     const overrides = getSlotOverrides();
-    return NextResponse.json({ success: true, overrides });
+    const bookedSlots = date ? getBookedSlotsForDate(date) : [];
+
+    return NextResponse.json({
+      success: true,
+      overrides,
+      date,
+      bookedSlots,
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
