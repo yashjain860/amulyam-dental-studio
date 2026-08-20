@@ -856,6 +856,41 @@ export function createQueueToken(input: Omit<QueueToken, "id" | "tokenNumber" | 
   };
 
   db.queue.push(newToken);
+
+  // 1. Sync with Bookings
+  if (input.bookingId && db.bookings) {
+    const bIdx = db.bookings.findIndex((b) => b.id === input.bookingId);
+    if (bIdx >= 0) {
+      db.bookings[bIdx].status = "CONFIRMED";
+    }
+  }
+
+  // 2. Sync with Patient CRM Directory (Users)
+  if (input.patientName && db.users) {
+    const cleanPhone = (input.patientPhone || "").replace(/\D/g, "");
+    const existingUser = db.users.find(
+      (u) =>
+        (cleanPhone.length >= 10 && u.phone.replace(/\D/g, "").includes(cleanPhone)) ||
+        u.name.toLowerCase().trim() === input.patientName.toLowerCase().trim()
+    );
+
+    if (!existingUser) {
+      db.users.push({
+        id: `usr-walkin-${Date.now()}`,
+        name: input.patientName,
+        phone: input.patientPhone || "+91 98930 00000",
+        email: `${input.patientName.toLowerCase().replace(/[^a-z0-9]/g, "")}_walkin@amulyam.com`,
+        role: "patient",
+        authProvider: "local",
+        bloodGroup: "O+",
+        age: 28,
+        gender: "Male",
+        source: "WALK_IN",
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
+
   writeDb(db);
   return newToken;
 }
@@ -870,6 +905,18 @@ export function updateQueueToken(id: string, updates: Partial<QueueToken>): Queu
     ...db.queue[idx],
     ...updates,
   };
+
+  // 1. Sync with Bookings
+  if (db.queue[idx].bookingId && db.bookings) {
+    const bIdx = db.bookings.findIndex((b) => b.id === db.queue[idx].bookingId);
+    if (bIdx >= 0) {
+      if (updates.status === "COMPLETED") {
+        db.bookings[bIdx].status = "COMPLETED";
+      } else if (updates.status === "IN_CHAIR" || updates.status === "BILLING") {
+        db.bookings[bIdx].status = "CONFIRMED";
+      }
+    }
+  }
 
   writeDb(db);
   return db.queue[idx];
