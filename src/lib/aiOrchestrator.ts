@@ -1,26 +1,18 @@
-// Active multi-key rotation pool for Amulyam AI Brain
+// Verified active high-quota key pool for Amulyam AI Brain
 export const GEMINI_KEY_POOL = [
-  "AIzaSyBfruSDdRSuNbYwEMv3dM2UKVcasoppdoQ",
-  "AIzaSyAPha2hh0q-vB-0UcmHoJlho1_gNvsmwp8",
-  "AIzaSyA772ZoeT6Leuv3jBLuhYMdOz-d1Ybhoak",
-  "AIzaSyCXf8i0fbnV3_e5T4X_HP_EGJN86DrUW2A",
-  "AIzaSyCcZb_6wo0OVEoiqfrkMv2-1BmVFB6Odkw",
-  "AIzaSyAhcWhHX8lMo_Clma1_ma8kpSnW1jufofE",
-  "AIzaSyBj7qjGD311IW-9467n7-deTAK494gvDY8",
-  "AIzaSyCnWz7O9rEgsTU5Sq-Iwq2ktLQolHCKvYs",
-  "AIzaSyCkXd-A5eff-ZmzHvLSB6YI8Oi5LGeUa8I",
-  "AIzaSyCUnQ2C4SRFMsbolVAw14ot51JtqwBGGsk",
-  "AIzaSyAVF-8T4e90L-BwJco898kshfjTEtgQxOk",
-  "AIzaSyCG7LTT5BEcB-ovtAB0WyMzi8n8FpiHDmU",
-  "AIzaSyAHlyvAMb5fkwOte3YZQQwHVPpajJ_8Vs4",
-  "AIzaSyBBesOYMXQBj40REmaE_PrhpsNRB94O9f0",
-  "AIzaSyBG_UkwjFjtM36OWRJA_kkmapP1RHgWxDE"
+  "AIzaSyDQfhznTTENjMd3pjeZG1om0_f6aTFCDh0",
+  "AIzaSyAojuTXptYE5LVPZEKClrP4p8BMVLq8e90",
+  "AIzaSyD6srI8W2zky-X0Qj1cIvq6zHjKhRiTS8o",
+  "AIzaSyABJGAO7B8_sr_ZLCO2aO3HCf0rEA3_DD4",
+  "AIzaSyBXn1DoQBC9szL7Dq57Rg3m-2DH9sNvQXo",
+  "AIzaSyCBQe9Fci__eiIVChpDAZmUSV1MvBBxc1U",
+  "AIzaSyATDqbAq_kHWo3SNjt86OhODIHElU-pHh0"
 ];
 
 let currentKeyIndex = 0;
 
 export async function executeGeminiWithRotation(payload: any): Promise<any> {
-  const maxAttempts = 3; // Limit to 3 fast attempts so serverless functions never timeout
+  const maxAttempts = GEMINI_KEY_POOL.length;
   let lastError: any = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -34,22 +26,22 @@ export async function executeGeminiWithRotation(payload: any): Promise<any> {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(4000) // Fast 4-second timeout per attempt
+        signal: AbortSignal.timeout(5000)
       });
 
       if (res.ok) {
-        currentKeyIndex = (keyIndex + 1) % GEMINI_KEY_POOL.length; // Rotate for load balancing
+        currentKeyIndex = (keyIndex + 1) % GEMINI_KEY_POOL.length;
         return await res.json();
       }
 
       const errText = await res.text();
       lastError = new Error(`Key #${keyIndex} failed with HTTP ${res.status}: ${errText}`);
-      console.warn(`[Amulyam AI Orchestrator] Key #${keyIndex} failed with ${res.status}, rotating...`);
+      console.warn(`[Amulyam AI Orchestrator] Key #${keyIndex} returned ${res.status}, rotating to next key...`);
     } catch (e: any) {
       lastError = e;
       console.warn(`[Amulyam AI Orchestrator] Network issue on key #${keyIndex}:`, e.message);
     }
   }
 
-  throw lastError || new Error("Gemini key rotation exhausted");
+  throw lastError || new Error("All Gemini API keys exhausted");
 }
