@@ -20,7 +20,7 @@ export const GEMINI_KEY_POOL = [
 let currentKeyIndex = 0;
 
 export async function executeGeminiWithRotation(payload: any): Promise<any> {
-  const maxAttempts = GEMINI_KEY_POOL.length;
+  const maxAttempts = 3; // Limit to 3 fast attempts so serverless functions never timeout
   let lastError: any = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -33,7 +33,8 @@ export async function executeGeminiWithRotation(payload: any): Promise<any> {
       const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(4000) // Fast 4-second timeout per attempt
       });
 
       if (res.ok) {
@@ -43,12 +44,12 @@ export async function executeGeminiWithRotation(payload: any): Promise<any> {
 
       const errText = await res.text();
       lastError = new Error(`Key #${keyIndex} failed with HTTP ${res.status}: ${errText}`);
-      console.warn(`[Amulyam AI Orchestrator] Key #${keyIndex} failed with ${res.status}, rotating to next key...`);
+      console.warn(`[Amulyam AI Orchestrator] Key #${keyIndex} failed with ${res.status}, rotating...`);
     } catch (e: any) {
       lastError = e;
       console.warn(`[Amulyam AI Orchestrator] Network issue on key #${keyIndex}:`, e.message);
     }
   }
 
-  throw lastError || new Error("All Gemini API keys exhausted");
+  throw lastError || new Error("Gemini key rotation exhausted");
 }
