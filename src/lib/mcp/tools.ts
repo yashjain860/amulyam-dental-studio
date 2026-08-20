@@ -42,13 +42,19 @@ export async function getClinicInfo() {
   };
 }
 
-export async function getAvailableSlots(date: string) {
-  if (!date) {
-    const today = new Date().toISOString().split("T")[0];
-    date = today;
+export async function getAvailableSlots(date?: string) {
+  let targetDate = date ? date.trim().toLowerCase() : "";
+  const now = new Date();
+
+  if (!targetDate || targetDate === "today") {
+    targetDate = now.toISOString().split("T")[0];
+  } else if (targetDate === "tomorrow") {
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    targetDate = tomorrow.toISOString().split("T")[0];
   }
 
-  const bookedSlots = getBookedSlotsForDate(date);
+  const bookedSlots = getBookedSlotsForDate(targetDate);
   const slotsStatus = TIME_SLOTS.map((slot) => ({
     time: slot,
     available: !bookedSlots.includes(slot),
@@ -59,7 +65,7 @@ export async function getAvailableSlots(date: string) {
 
   return {
     success: true,
-    date,
+    date: targetDate,
     totalSlots: TIME_SLOTS.length,
     availableSlotsCount: availableCount,
     slots: slotsStatus

@@ -145,9 +145,12 @@ export async function POST(req: Request) {
       });
     }
 
+    const todayStr = new Date().toISOString().split("T")[0];
+    const dynamicSystemInstruction = `${SYSTEM_PROMPT}\n\nCURRENT DATE CONTEXT:\n- Today is ${todayStr}.\n- When a patient asks for "today", "tomorrow", or general availability, automatically call 'get_available_slots' with date="${todayStr}" (or the calculated date). DO NOT ask the patient for today's date.`;
+
     const requestPayload = {
       systemInstruction: {
-        parts: [{ text: SYSTEM_PROMPT }]
+        parts: [{ text: dynamicSystemInstruction }]
       },
       contents,
       tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
@@ -201,7 +204,7 @@ export async function POST(req: Request) {
 
       // Second turn with tool result
       const followUpPayload = {
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        systemInstruction: { parts: [{ text: dynamicSystemInstruction }] },
         contents,
         generationConfig: { temperature: 0.2, maxOutputTokens: 1024 }
       };
