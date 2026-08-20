@@ -27,6 +27,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://amulyam.thewebvale.com"),
   title: "Amulyam Dental Studio | Painless Dental Care & Smile Makeovers in Bhopal",
   description:
     "Amulyam Dental Studio in Awadhpuri, Bhopal offers advanced, pain-free dental treatments, implants, rotary root canals, cosmetic smile design, and clear aligners by Dr. Shreya Nidhi.",
