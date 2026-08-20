@@ -106,8 +106,8 @@ export default function Navbar() {
                 </kbd>
               </button>
 
-              {/* Theme Switcher */}
-              <ThemeToggle />
+              {/* Theme Switcher (Hidden in Admin panel) */}
+              {!pathname?.startsWith("/admin") && <ThemeToggle />}
 
               {/* Track Appointment / Care Pass */}
               <Link
