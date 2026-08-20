@@ -157,6 +157,18 @@ export async function POST(req: Request) {
       }
     }
 
+    // Strict Gemini API invariant: contents array MUST start with role 'user'
+    while (contents.length > 0 && contents[0].role === "model") {
+      contents.shift();
+    }
+
+    if (contents.length === 0) {
+      return NextResponse.json({
+        role: "assistant",
+        content: "Namaste! How can I assist you with your dental care at Amulyam Dental Studio today?"
+      });
+    }
+
     const todayStr = new Date().toISOString().split("T")[0];
     const dynamicSystemInstruction = `${SYSTEM_PROMPT}\n\nCURRENT DATE CONTEXT:\n- Today is ${todayStr}.\n- When a patient asks for "today", "tomorrow", or general availability, automatically call 'get_available_slots' with date="${todayStr}" (or the calculated date). DO NOT ask the patient for today's date.`;
 
