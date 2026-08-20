@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createUser, getUserByEmail } from "@/lib/db";
 import { PATIENT_COOKIE_NAME, SessionUser } from "@/lib/auth";
+import { generateWelcomeEmail, sendEmailNotification } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,6 +37,20 @@ export async function POST(req: NextRequest) {
       role: "patient",
       authProvider: "local",
     });
+
+    // Send Welcome Email
+    (async () => {
+      try {
+        const welcomeMail = generateWelcomeEmail({ name: user.name, email: user.email });
+        await sendEmailNotification({
+          to: user.email,
+          subject: welcomeMail.subject,
+          html: welcomeMail.html,
+        });
+      } catch (e) {
+        console.error("Failed to send welcome email:", e);
+      }
+    })();
 
     const sessionUser: SessionUser = {
       id: user.id,

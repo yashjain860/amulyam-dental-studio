@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PATIENT_COOKIE_NAME, ADMIN_COOKIE_NAME, SessionUser } from "@/lib/auth";
-import { findOrCreateGoogleUser } from "@/lib/db";
+import { findOrCreateGoogleUser, getUserByEmail } from "@/lib/db";
+import { generateWelcomeEmail, sendEmailNotification } from "@/lib/email";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -74,11 +75,27 @@ export async function GET(req: NextRequest) {
 
     // 3. Upsert into database
     try {
+      const isNewPatient = !getUserByEmail(sessionUser.email);
       findOrCreateGoogleUser({
         name: sessionUser.name,
         email: sessionUser.email,
         avatar: sessionUser.avatar,
       });
+
+      if (isNewPatient && sessionUser.role === "patient") {
+        (async () => {
+          try {
+            const welcomeMail = generateWelcomeEmail({ name: sessionUser.name, email: sessionUser.email });
+            await sendEmailNotification({
+              to: sessionUser.email,
+              subject: welcomeMail.subject,
+              html: welcomeMail.html,
+            });
+          } catch (e) {
+            console.error("Failed to send Google welcome email:", e);
+          }
+        })();
+      }
     } catch (dbErr) {
       console.error("Database user upsert error:", dbErr);
     }

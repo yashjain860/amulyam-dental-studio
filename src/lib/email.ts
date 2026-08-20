@@ -315,6 +315,134 @@ export function generateFollowUpEmail(booking: Booking, type: "REMINDER_24H" | "
   return { subject, html };
 }
 
+// 5. Welcome & Account Creation Email
+export function generateWelcomeEmail(user: { name: string; email: string }): { subject: string; html: string } {
+  const subject = `✨ Welcome to Amulyam Dental Studio — Your Smile Journey Begins`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #FAF8F5; margin: 0; padding: 20px; color: #2E2E2E; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #EFEAE1; box-shadow: 0 10px 30px rgba(0,0,0,0.06); }
+    .header { background: linear-gradient(135deg, #1C1A17 0%, #2A2621 100%); color: #ffffff; padding: 35px 30px; text-align: center; border-bottom: 3px solid #C9A227; }
+    .header h1 { margin: 0 0 8px; font-size: 24px; color: #DDB83C; letter-spacing: 0.5px; }
+    .header p { margin: 0; color: #D1C7B7; font-size: 14px; }
+    .content { padding: 35px 30px; line-height: 1.6; color: #4A453C; }
+    .feature-card { background: #FAF8F5; border: 1px solid #E8E0D2; border-left: 4px solid #C9A227; border-radius: 12px; padding: 18px 20px; margin: 20px 0; }
+    .btn { display: inline-block; background: #C9A227; color: #1C1A17 !important; text-decoration: none; padding: 14px 28px; border-radius: 10px; font-weight: 700; font-size: 15px; margin-top: 15px; }
+    .footer { background: #FAF8F5; padding: 25px; text-align: center; font-size: 12px; color: #8A8175; border-top: 1px solid #EFEAE1; }
+    .footer a { color: #C9A227; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${CLINIC_INFO.name}</h1>
+      <p>Precision Dentistry • Aesthetic Care • Uncompromised Hygiene</p>
+    </div>
+    
+    <div class="content">
+      <h2 style="margin-top: 0; color: #1C1A17; font-size: 20px;">Welcome, ${user.name}!</h2>
+      <p>
+        Thank you for joining the <strong>Amulyam Dental Studio</strong> family. Your personal dental care account has been successfully created.
+      </p>
+
+      <div class="feature-card">
+        <h3 style="margin-top: 0; color: #1C1A17; font-size: 16px;">🌟 What You Can Do in Your Care Portal:</h3>
+        <ul style="margin: 10px 0 0; padding-left: 20px; font-size: 14px; color: #595349;">
+          <li><strong>Digital Boarding Passes:</strong> Instant QR-code express check-in on appointment day.</li>
+          <li><strong>Treatment History:</strong> Access clinical notes, past procedures, and follow-up schedules.</li>
+          <li><strong>1-Click Booking:</strong> Effortlessly reserve your preferred dates & consultation slots.</li>
+          <li><strong>Digital Prescriptions:</strong> View doctor medication guidelines anytime on mobile.</li>
+        </ul>
+      </div>
+
+      <div style="text-align: center; margin: 25px 0;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3005"}/patient-portal" class="btn">
+          Access Your Patient Care Portal →
+        </a>
+      </div>
+
+      <div style="background: #F4F1EA; border-radius: 10px; padding: 16px 20px; font-size: 13px; color: #595349;">
+        <strong>🏥 Clinic Details & Appointments:</strong>
+        <p style="margin: 6px 0 0;">
+          <strong>Location:</strong> ${CLINIC_INFO.address}<br>
+          <strong>Hours:</strong> Mon – Sat: 10:00 AM – 8:00 PM<br>
+          <strong>Direct Line / WhatsApp:</strong> ${CLINIC_INFO.phone}
+        </p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p style="margin: 0 0 8px;"><strong>${CLINIC_INFO.name}</strong> • Led by Dr. Shreya Nidhi (BDS, MDS Endodontist)</p>
+      <p style="margin: 0;">Phone: <a href="tel:${CLINIC_INFO.rawPhone}">${CLINIC_INFO.phone}</a> | Email: <a href="mailto:${CLINIC_INFO.email}">${CLINIC_INFO.email}</a></p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  return { subject, html };
+}
+
+// 6. Contact Inquiry Acknowledgement Email for Patients
+export function generateContactInquiryAckEmail(inquiry: ContactInquiry): { subject: string; html: string } {
+  const subject = `We've Received Your Message — Amulyam Dental Studio`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #FAF8F5; margin: 0; padding: 20px; color: #2E2E2E; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #EFEAE1; }
+    .header { background: #1C1A17; color: #ffffff; padding: 30px; text-align: center; border-bottom: 3px solid #C9A227; }
+    .content { padding: 30px; line-height: 1.6; color: #4A453C; }
+    .footer { background: #FAF8F5; padding: 20px; text-align: center; font-size: 12px; color: #8A8175; border-top: 1px solid #EFEAE1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="color: #DDB83C; margin: 0 0 5px; font-size: 22px;">${CLINIC_INFO.name}</h1>
+      <p style="margin: 0; color: #D1C7B7;">Message Received</p>
+    </div>
+    
+    <div class="content">
+      <p>Hello <strong>${inquiry.firstName} ${inquiry.lastName || ""}</strong>,</p>
+      <p>
+        Thank you for contacting Amulyam Dental Studio. We have received your inquiry regarding <strong>${inquiry.serviceOfInterest || "our dental services"}</strong>.
+      </p>
+
+      <div style="background: #FAF8F5; border-left: 4px solid #C9A227; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <strong style="color: #1C1A17;">Your Message Summary:</strong>
+        <p style="margin: 5px 0 0; color: #555; font-style: italic;">"${inquiry.message}"</p>
+      </div>
+
+      <p>
+        Our clinical desk and Dr. Shreya Nidhi will review your notes and respond via email (<strong>${inquiry.email}</strong>) or phone/WhatsApp (<strong>${inquiry.phone}</strong>) within 2 to 4 business hours.
+      </p>
+
+      <p style="font-size: 13px; color: #777;">
+        Need urgent assistance? Feel free to call us directly at <strong>${CLINIC_INFO.phone}</strong>.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p style="margin: 0;">${CLINIC_INFO.name} • ${CLINIC_INFO.address}</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  return { subject, html };
+}
+
 // Multi-Channel Dispatcher
 export async function sendEmailNotification(options: {
   to: string;
