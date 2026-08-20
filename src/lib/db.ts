@@ -77,6 +77,101 @@ function getInitialData(): DatabaseSchema {
         authProvider: "local",
         createdAt: new Date().toISOString(),
       },
+      {
+        id: "pat-1",
+        name: "Aarav Sharma",
+        email: "aarav.sharma@example.com",
+        phone: "+91 98260 12345",
+        passwordHash: hashPassword("patient123"),
+        role: "patient",
+        authProvider: "local",
+        age: 29,
+        gender: "Male",
+        bloodGroup: "O+",
+        medicalHistory: "No major systemic conditions",
+        allergies: "None",
+        address: "E-7 Arera Colony, Bhopal",
+        emergencyContact: "Mrs. Sunita Sharma (+91 98260 99999)",
+        source: "WEBSITE",
+        notes: "Sensitive lower molars, interested in preventive care",
+        createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
+      },
+      {
+        id: "pat-2",
+        name: "Neha Gupta",
+        email: "neha.gupta@example.com",
+        phone: "+91 94250 98765",
+        passwordHash: hashPassword("patient123"),
+        role: "patient",
+        authProvider: "local",
+        age: 34,
+        gender: "Female",
+        bloodGroup: "B+",
+        medicalHistory: "Mild asthma (inhaler)",
+        allergies: "Penicillin allergy (caution)",
+        address: "B-12 Bawadiya Kalan, Bhopal",
+        emergencyContact: "Rohit Gupta (+91 94250 11111)",
+        source: "WEBSITE",
+        notes: "Cosmetic smile makeover and whitening before wedding",
+        createdAt: new Date(Date.now() - 86400000 * 15).toISOString(),
+      },
+      {
+        id: "pat-3",
+        name: "Rajesh Mehra",
+        email: "rajesh.mehra@example.com",
+        phone: "+91 98930 55443",
+        passwordHash: hashPassword("patient123"),
+        role: "patient",
+        authProvider: "local",
+        age: 52,
+        gender: "Male",
+        bloodGroup: "A+",
+        medicalHistory: "Type 2 Diabetes (HbA1c 6.8)",
+        allergies: "None",
+        address: "HIG-45 Awadhpuri BDA Road, Bhopal",
+        emergencyContact: "Anjali Mehra (+91 98930 22222)",
+        source: "WALK_IN",
+        notes: "Requires bilateral molar crowns and routine scaling",
+        createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+      },
+      {
+        id: "pat-4",
+        name: "Pooja Trivedi",
+        email: "pooja.trivedi@example.com",
+        phone: "+91 91110 33445",
+        passwordHash: hashPassword("patient123"),
+        role: "patient",
+        authProvider: "local",
+        age: 26,
+        gender: "Female",
+        bloodGroup: "AB+",
+        medicalHistory: "None",
+        allergies: "None",
+        address: "Minal Residency, Bhopal",
+        emergencyContact: "Vikas Trivedi (+91 91110 77777)",
+        source: "REFERRAL",
+        notes: "Clear aligner scan done, awaiting tray dispatch",
+        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      },
+      {
+        id: "pat-5",
+        name: "Amitabh Verma",
+        email: "amitabh.verma@example.com",
+        phone: "+91 98270 44556",
+        passwordHash: hashPassword("patient123"),
+        role: "patient",
+        authProvider: "local",
+        age: 61,
+        gender: "Male",
+        bloodGroup: "O+",
+        medicalHistory: "Hypertension (Amlodipine 5mg)",
+        allergies: "Sulfa drugs",
+        address: "Gulmohar Colony, Bhopal",
+        emergencyContact: "Suman Verma (+91 98270 88888)",
+        source: "PHONE",
+        notes: "Implant evaluation for missing upper premolar",
+        createdAt: new Date().toISOString(),
+      },
     ],
 
     bookings: [
@@ -963,5 +1058,61 @@ export function createCashRegisterEntry(
   writeDb(db);
   return newEntry;
 }
+
+// ----------------------------------------------------
+// PATIENT CRM & DIRECTORY OPERATIONS
+// ----------------------------------------------------
+export function getAllPatients(): UserAccount[] {
+  const db = readDb();
+  return (db.users || []).filter((u) => u.role === "patient");
+}
+
+export function getPatientById(idOrEmail: string): UserAccount | null {
+  const db = readDb();
+  return (
+    (db.users || []).find(
+      (u) => u.id === idOrEmail || u.email.toLowerCase() === idOrEmail.toLowerCase()
+    ) || null
+  );
+}
+
+export function createPatient(
+  input: Omit<UserAccount, "id" | "role" | "createdAt"> & { role?: "patient" | "admin" }
+): UserAccount {
+  const db = readDb();
+  if (!db.users) db.users = [];
+
+  const newPatient: UserAccount = {
+    ...input,
+    id: `pat-${Date.now()}`,
+    role: input.role || "patient",
+    authProvider: input.authProvider || "local",
+    createdAt: new Date().toISOString(),
+  };
+
+  db.users.unshift(newPatient);
+  writeDb(db);
+  return newPatient;
+}
+
+export function updatePatient(
+  idOrEmail: string,
+  updates: Partial<UserAccount>
+): UserAccount | null {
+  const db = readDb();
+  const idx = (db.users || []).findIndex(
+    (u) => u.id === idOrEmail || u.email.toLowerCase() === idOrEmail.toLowerCase()
+  );
+  if (idx === -1) return null;
+
+  db.users[idx] = {
+    ...db.users[idx],
+    ...updates,
+  };
+
+  writeDb(db);
+  return db.users[idx];
+}
+
 
 

@@ -20,7 +20,10 @@ import {
   Mail,
   KeyRound,
   FileText,
+  Edit3,
+  HeartPulse,
 } from "lucide-react";
+import PatientEditProfileModal from "@/components/portal/PatientEditProfileModal";
 import { Booking } from "@/lib/types";
 import { CLINIC_INFO } from "@/lib/constants";
 import {
@@ -55,7 +58,7 @@ export default function PatientCarePassPage() {
   const [loading, setLoading] = useState(false);
   const [pageInitializing, setPageInitializing] = useState(true);
   const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   // Check existing session on page mount
   const checkSession = async () => {
@@ -592,6 +595,14 @@ export default function PatientCarePassPage() {
               </div>
 
               <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileOpen(true)}
+                  className="px-3.5 py-2.5 rounded-xl border border-[#C9A227]/40 bg-[#FAF8F5] dark:bg-[#22201C] hover:bg-[#C9A227]/15 text-xs font-bold text-[#1A1A1A] dark:text-white flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-[#C9A227]" />
+                  <span>Edit Profile</span>
+                </button>
                 <Link
                   href="/book"
                   className="px-4 py-2.5 rounded-xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-xs shadow-md"
@@ -732,6 +743,18 @@ export default function PatientCarePassPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Health Profile Modal */}
+      {currentUser && (
+        <PatientEditProfileModal
+          isOpen={isEditProfileOpen}
+          onClose={() => setIsEditProfileOpen(false)}
+          patient={currentUser}
+          onUpdated={(updated) => {
+            setCurrentUser(updated);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -36,6 +36,11 @@ import {
   FileText,
   Sliders,
   DollarSign,
+  HeartPulse,
+  MapPin,
+  AlertTriangle,
+  UserCheck,
+  ChevronDown,
 } from "lucide-react";
 import {
   Booking,
@@ -48,6 +53,7 @@ import {
   TreatmentPlan,
   Invoice,
   CashRegisterEntry,
+  UserAccount,
 } from "@/lib/types";
 import { TIME_SLOTS, CLINIC_INFO, LEAD_DOCTOR } from "@/lib/constants";
 import {
@@ -64,16 +70,17 @@ import LiveWaitingRoomQueue from "@/components/admin/LiveWaitingRoomQueue";
 import BillingPOSModal from "@/components/admin/BillingPOSModal";
 import CashRegisterSummary from "@/components/admin/CashRegisterSummary";
 import TreatmentPlanManager from "@/components/admin/TreatmentPlanManager";
+import PatientProfileModal from "@/components/admin/PatientProfileModal";
 
 type AdminTab =
   | "receptionist"
   | "doctor"
+  | "patients"
   | "appointments"
   | "billing"
   | "treatment_plans"
   | "cash_register"
   | "analytics"
-  | "followups"
   | "inquiries";
 
 export default function AdminPage() {
@@ -85,6 +92,7 @@ export default function AdminPage() {
   const [adminUser, setAdminUser] = useState<SessionUser | null>(null);
 
   // Data states
+  const [patients, setPatients] = useState<UserAccount[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);
   const [queue, setQueue] = useState<QueueToken[]>([]);
@@ -96,15 +104,21 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [followupSuccess, setFollowupSuccess] = useState<string>("");
 
+  // Active Selected Patient for Doctor / Frontdesk operations
+  const [activePatient, setActivePatient] = useState<UserAccount | null>(null);
+
   // Tabs & Filters
   const [activeTab, setActiveTab] = useState<AdminTab>("receptionist");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [dateFilter, setDateFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [patientSearch, setPatientSearch] = useState("");
 
   // Modals
   const [isRxModalOpen, setIsRxModalOpen] = useState(false);
   const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
+  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
+  const [selectedPatientForEdit, setSelectedPatientForEdit] = useState<UserAccount | null>(null);
   const [selectedBookingForModal, setSelectedBookingForModal] = useState<Booking | null>(null);
   const [selectedTokenForModal, setSelectedTokenForModal] = useState<QueueToken | null>(null);
 
@@ -171,6 +185,15 @@ export default function AdminPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      const resP = await fetch("/api/admin/patients");
+      const dataP = await resP.json();
+      if (dataP.success) {
+        setPatients(dataP.patients);
+        if (!activePatient && dataP.patients.length > 0) {
+          setActivePatient(dataP.patients[0]);
+        }
+      }
+
       const resB = await fetch("/api/bookings");
       const dataB = await resB.json();
       if (dataB.success) setBookings(dataB.bookings);
@@ -308,6 +331,18 @@ export default function AdminPage() {
     return true;
   });
 
+  const filteredPatients = patients.filter((p) => {
+    if (!patientSearch) return true;
+    const q = patientSearch.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(q) ||
+      p.phone.includes(q) ||
+      p.email.toLowerCase().includes(q) ||
+      (p.medicalHistory && p.medicalHistory.toLowerCase().includes(q)) ||
+      (p.allergies && p.allergies.toLowerCase().includes(q))
+    );
+  });
+
   if (authChecking) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-amber-400">
@@ -341,7 +376,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Quick Role & Portal Switcher Strip */}
+          {/* Quick Action Strip */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setActiveTab("receptionist")}
@@ -365,6 +400,17 @@ export default function AdminPage() {
             >
               <Stethoscope className="w-3.5 h-3.5" />
               <span>👨‍⚕️ Doctor Odontogram</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedPatientForEdit(null);
+                setIsPatientModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>+ Add Walk-In Profile</span>
             </button>
 
             <button
@@ -399,6 +445,74 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* ACTIVE PATIENT OPERATIONAL CONTEXT STRIP */}
+        <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-amber-500/40 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-sm shadow">
+                {activePatient?.name ? activePatient.name.charAt(0) : "P"}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Patient in Context:</span>
+                  <span className="text-sm font-extrabold text-white">{activePatient?.name || "No Patient Selected"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-300 mt-0.5">
+                  <span>{activePatient?.age ? `${activePatient.age} yrs • ` : ""}{activePatient?.gender || "Male"}</span>
+                  <span className="font-mono text-amber-400 font-bold">🩸 {activePatient?.bloodGroup || "O+"}</span>
+                  <span className="text-slate-400">📞 {activePatient?.phone}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Medical Alerts Badges */}
+            {activePatient?.allergies && activePatient.allergies !== "None" && (
+              <span className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Allergy: {activePatient.allergies}
+              </span>
+            )}
+            {activePatient?.medicalHistory && activePatient.medicalHistory !== "None" && (
+              <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-semibold flex items-center gap-1">
+                <HeartPulse className="w-3 h-3" /> {activePatient.medicalHistory}
+              </span>
+            )}
+          </div>
+
+          {/* Quick Patient Switcher Dropdown */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <select
+                value={activePatient?.id || ""}
+                onChange={(e) => {
+                  const selected = patients.find((p) => p.id === e.target.value);
+                  if (selected) setActivePatient(selected);
+                }}
+                className="bg-slate-950 border border-amber-500/40 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-bold focus:outline-none focus:ring-1 focus:ring-amber-500 pr-8"
+              >
+                <option value="" disabled>Choose Patient...</option>
+                {patients.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.phone.slice(-5)}) — {p.source || "Walk-In"}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {activePatient && (
+              <button
+                onClick={() => {
+                  setSelectedPatientForEdit(activePatient);
+                  setIsPatientModalOpen(true);
+                }}
+                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                title="Edit Active Patient Profile"
+              >
+                <Edit3 className="w-4 h-4 text-amber-400" />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Global Alert Notification Banner */}
         {followupSuccess && (
           <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center justify-between animate-in fade-in">
@@ -412,6 +526,7 @@ export default function AdminPage() {
           {[
             { id: "receptionist", label: "Waiting Room & Queue", icon: Users, count: queue.filter((q) => q.status === "WAITING" || q.status === "IN_CHAIR").length },
             { id: "doctor", label: "Tooth Odontogram Chart", icon: Stethoscope },
+            { id: "patients", label: "Patient Directory (CRM)", icon: UserCheck, count: patients.length },
             { id: "appointments", label: "All Appointments", icon: Calendar, count: bookings.length },
             { id: "billing", label: "Invoices & Billing", icon: Receipt, count: invoices.length },
             { id: "treatment_plans", label: "Treatment Plans", icon: Layers, count: treatmentPlans.length },
@@ -454,6 +569,8 @@ export default function AdminPage() {
             }}
             onOpenDentalChart={(token) => {
               setSelectedTokenForModal(token);
+              const foundPatient = patients.find((p) => p.name === token.patientName || p.phone === token.patientPhone);
+              if (foundPatient) setActivePatient(foundPatient);
               setActiveTab("doctor");
             }}
           />
@@ -462,12 +579,184 @@ export default function AdminPage() {
         {/* ----------------- TAB 2: DOCTOR CLINICAL ODONTOGRAM ----------------- */}
         {activeTab === "doctor" && (
           <DentalChartOdontogram
-            patientName={selectedBooking?.patientName || "Aarav Sharma"}
-            patientEmail={selectedBooking?.patientEmail || "aarav.sharma@example.com"}
+            patientName={activePatient?.name || "Aarav Sharma"}
+            patientEmail={activePatient?.email || "aarav.sharma@example.com"}
           />
         )}
 
-        {/* ----------------- TAB 3: MASTER APPOINTMENTS LIST ----------------- */}
+        {/* ----------------- TAB 3: PATIENTS CRM DIRECTORY (NEW!) ----------------- */}
+        {activeTab === "patients" && (
+          <div className="space-y-4">
+            <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-1">
+                <Search className="w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={patientSearch}
+                  onChange={(e) => setPatientSearch(e.target.value)}
+                  placeholder="Search patient by name, phone, email, condition, or allergy..."
+                  className="bg-transparent border-none text-xs sm:text-sm text-white focus:outline-none w-full placeholder-slate-500"
+                />
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedPatientForEdit(null);
+                  setIsPatientModalOpen(true);
+                }}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-1.5"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>+ Register Walk-In / Offline Patient</span>
+              </button>
+            </div>
+
+            <div className="bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 bg-slate-950/50">
+                      <th className="py-3 px-4">Patient Name &amp; Age</th>
+                      <th className="py-3 px-3">Contact Details</th>
+                      <th className="py-3 px-3">Blood Group</th>
+                      <th className="py-3 px-3">Origin Source</th>
+                      <th className="py-3 px-3">Medical History &amp; Alerts</th>
+                      <th className="py-3 px-3">Emergency Contact</th>
+                      <th className="py-3 px-4 text-right">Clinical Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {filteredPatients.map((p) => {
+                      const isCurrentActive = activePatient?.id === p.id;
+                      return (
+                        <tr
+                          key={p.id}
+                          className={`hover:bg-slate-800/40 transition ${isCurrentActive ? "bg-amber-500/5" : ""}`}
+                        >
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-slate-800 border border-amber-500/30 text-amber-400 font-bold flex items-center justify-center text-xs">
+                                {p.name.charAt(0)}
+                              </div>
+                              <div>
+                                <span className="font-bold text-white block">{p.name}</span>
+                                <span className="text-[11px] text-slate-400">
+                                  {p.age ? `${p.age} yrs` : "Age N/A"} • {p.gender || "Male"}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-3.5 px-3">
+                            <span className="font-mono text-slate-200 block">{p.phone}</span>
+                            <span className="text-[11px] text-slate-400">{p.email}</span>
+                          </td>
+
+                          <td className="py-3.5 px-3">
+                            <span className="font-mono font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                              {p.bloodGroup || "O+"}
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-3">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                p.source === "WALK_IN"
+                                  ? "bg-sky-500/10 text-sky-400 border border-sky-500/30"
+                                  : p.source === "PHONE"
+                                  ? "bg-purple-500/10 text-purple-400 border border-purple-500/30"
+                                  : p.source === "REFERRAL"
+                                  ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
+                                  : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                              }`}
+                            >
+                              {p.source || "WEBSITE"}
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-3 max-w-xs">
+                            <div className="space-y-1">
+                              {p.allergies && p.allergies !== "None" && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/30">
+                                  ⚠️ {p.allergies}
+                                </span>
+                              )}
+                              <p className="text-[11px] text-slate-300 truncate">{p.medicalHistory || "None"}</p>
+                            </div>
+                          </td>
+
+                          <td className="py-3.5 px-3 text-[11px] text-slate-400">
+                            {p.emergencyContact || "N/A"}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setActivePatient(p);
+                                  setActiveTab("doctor");
+                                }}
+                                className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition"
+                                title="Open Odontogram Chart"
+                              >
+                                <Stethoscope className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setActivePatient(p);
+                                  setIsRxModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 transition"
+                                title="Write E-Prescription"
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setActivePatient(p);
+                                  setIsBillingModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 transition"
+                                title="Generate Invoice"
+                              >
+                                <Receipt className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setSelectedPatientForEdit(p);
+                                  setIsPatientModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                                title="Edit Profile"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <a
+                                href={`https://wa.me/${p.phone.replace(/\D/g, "")}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition"
+                                title="WhatsApp Patient"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ----------------- TAB 4: MASTER APPOINTMENTS LIST ----------------- */}
         {activeTab === "appointments" && (
           <div className="space-y-4">
             {/* Filter Bar */}
@@ -509,7 +798,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Appointments Grid / Cards */}
+            {/* Appointments Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredBookings.map((b) => (
                 <div
@@ -596,7 +885,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ----------------- TAB 4: BILLING & INVOICES ----------------- */}
+        {/* ----------------- TAB 5: BILLING & INVOICES ----------------- */}
         {activeTab === "billing" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
@@ -657,22 +946,22 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ----------------- TAB 5: TREATMENT PLANS ----------------- */}
+        {/* ----------------- TAB 6: TREATMENT PLANS ----------------- */}
         {activeTab === "treatment_plans" && (
           <TreatmentPlanManager plans={treatmentPlans} onRefresh={fetchData} />
         )}
 
-        {/* ----------------- TAB 6: CASH REGISTER RECONCILIATION ----------------- */}
+        {/* ----------------- TAB 7: CASH REGISTER RECONCILIATION ----------------- */}
         {activeTab === "cash_register" && (
           <CashRegisterSummary entries={cashEntries} onRefresh={fetchData} />
         )}
 
-        {/* ----------------- TAB 7: ANALYTICS & KPIS ----------------- */}
+        {/* ----------------- TAB 8: ANALYTICS & KPIS ----------------- */}
         {activeTab === "analytics" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-1">
-              <span className="text-xs text-slate-400">Total Bookings</span>
-              <p className="text-3xl font-black text-white font-mono">{bookings.length}</p>
+              <span className="text-xs text-slate-400">Total Registered Patients</span>
+              <p className="text-3xl font-black text-white font-mono">{patients.length}</p>
             </div>
             <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-1">
               <span className="text-xs text-slate-400">Today's Appointments</span>
@@ -693,7 +982,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ----------------- TAB 8: WEB INQUIRIES ----------------- */}
+        {/* ----------------- TAB 9: WEB INQUIRIES ----------------- */}
         {activeTab === "inquiries" && (
           <div className="space-y-3">
             {inquiries.map((inq) => (
@@ -721,11 +1010,27 @@ export default function AdminPage() {
         )}
       </div>
 
+      {/* Patient Profile Modal (Create offline & Admin Edit) */}
+      <PatientProfileModal
+        isOpen={isPatientModalOpen}
+        onClose={() => {
+          setIsPatientModalOpen(false);
+          setSelectedPatientForEdit(null);
+        }}
+        patient={selectedPatientForEdit}
+        onSaved={(savedPat) => {
+          setIsPatientModalOpen(false);
+          setSelectedPatientForEdit(null);
+          fetchData();
+        }}
+      />
+
       {/* Prescription Generator Modal */}
       <PrescriptionGeneratorModal
         isOpen={isRxModalOpen}
         onClose={() => setIsRxModalOpen(false)}
         booking={selectedBookingForModal}
+        patient={activePatient}
         onSaved={() => {
           setIsRxModalOpen(false);
           fetchData();
@@ -738,6 +1043,7 @@ export default function AdminPage() {
         onClose={() => setIsBillingModalOpen(false)}
         booking={selectedBookingForModal}
         token={selectedTokenForModal}
+        patient={activePatient}
         onSaved={() => {
           setIsBillingModalOpen(false);
           fetchData();
@@ -746,8 +1052,15 @@ export default function AdminPage() {
 
       {/* Manage Status / Action Modal */}
       {selectedBooking && actionType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-amber-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+        <div
+          data-lenis-prevent
+          onWheel={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overscroll-contain"
+        >
+          <div
+            data-lenis-prevent
+            className="bg-slate-900 border border-amber-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 overscroll-contain"
+          >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h4 className="text-base font-bold text-white">Manage: {selectedBooking.refNumber}</h4>
               <button onClick={() => setSelectedBooking(null)} className="text-slate-400 hover:text-white">✕</button>

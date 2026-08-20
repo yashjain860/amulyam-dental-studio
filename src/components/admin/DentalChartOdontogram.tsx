@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ToothRecord,
   ToothCondition,
@@ -56,6 +56,25 @@ export default function DentalChartOdontogram({
   const [selectedTooth, setSelectedTooth] = useState<number | null>(36);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Fetch dental chart dynamically when patient changes
+  useEffect(() => {
+    const loadChart = async () => {
+      if (!patientEmail) return;
+      try {
+        const res = await fetch(`/api/admin/clinical?type=dental_chart&patientId=${encodeURIComponent(patientEmail)}`);
+        const data = await res.json();
+        if (data.success && data.chart?.teeth) {
+          setTeeth(data.chart.teeth);
+        } else if (!initialChart) {
+          setTeeth({});
+        }
+      } catch (e) {
+        console.error("Error loading patient chart:", e);
+      }
+    };
+    loadChart();
+  }, [patientEmail, initialChart]);
 
   const currentRecord: ToothRecord = selectedTooth && teeth[selectedTooth]
     ? teeth[selectedTooth]

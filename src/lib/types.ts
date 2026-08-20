@@ -14,6 +14,15 @@ export interface UserAccount {
   role: "patient" | "admin";
   authProvider: "local" | "google";
   avatar?: string;
+  age?: number;
+  gender?: string;
+  bloodGroup?: string;
+  medicalHistory?: string;
+  allergies?: string;
+  address?: string;
+  emergencyContact?: string;
+  source?: "WEBSITE" | "WALK_IN" | "PHONE" | "REFERRAL";
+  notes?: string;
   createdAt: string;
 }
 
@@ -156,8 +165,8 @@ export interface PatientDentalChart {
 export interface RxMedicine {
   name: string;
   dosage: string; // e.g. "625 mg"
-  frequency: "1-0-1" | "1-1-1" | "1-0-0" | "0-0-1" | "SOS" | "PRN";
-  timing: "After Food" | "Before Food" | "With Food";
+  frequency: string; // e.g. "1-0-1", "1-1-1", "SOS", "STAT"
+  timing: string; // e.g. "After Food", "Before Food", "With Food"
   duration: string; // e.g. "5 Days"
   instructions?: string;
 }
