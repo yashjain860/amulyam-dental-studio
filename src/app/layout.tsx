@@ -48,6 +48,8 @@ export const metadata: Metadata = {
   },
 };
 
+import ChatWidget from "@/components/chat/ChatWidget";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -62,6 +64,7 @@ export default function RootLayout({
             <main className="flex-grow">{children}</main>
             <Footer />
             <MobileBottomNav />
+            <ChatWidget />
           </SearchProvider>
         </SmoothScroll>
       </body>
