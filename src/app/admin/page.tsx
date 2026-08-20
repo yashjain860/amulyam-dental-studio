@@ -79,6 +79,7 @@ import ConsentFormModal from "@/components/clinical/ConsentFormModal";
 import DentalLabTracker from "@/components/admin/DentalLabTracker";
 import InventorySterilizationTracker from "@/components/admin/InventorySterilizationTracker";
 import PostOpCareRecallEngine from "@/components/admin/PostOpCareRecallEngine";
+import { AdminDashboardSkeleton, TableSkeleton, StatCardSkeleton } from "@/components/ui/Skeleton";
 
 import {
   SmileTransformation,
@@ -408,32 +409,29 @@ export default function AdminPage() {
 
   if (authChecking) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-amber-400">
-        <div className="flex flex-col items-center gap-3">
-          <span className="animate-spin text-3xl">✦</span>
-          <p className="text-sm font-semibold tracking-wider uppercase">Authenticating Clinic Terminal...</p>
-        </div>
+      <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#0F0E0D] p-4 sm:p-6 max-w-7xl mx-auto">
+        <AdminDashboardSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-20 pt-6">
+    <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#0F0E0D] text-[#1C1A17] dark:text-[#F8F6F2] pb-20 pt-6 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Top App Header */}
-        <div className="bg-slate-900/90 backdrop-blur-xl border border-amber-500/30 rounded-2xl p-4 sm:p-6 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white dark:bg-slate-900/90 backdrop-blur-xl border border-[#C9A227]/30 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg">
               ADS
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">Amulyam Clinic OS</h1>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
+                <h1 className="text-lg sm:text-xl font-extrabold text-[#1C1A17] dark:text-white tracking-tight">Amulyam Clinic OS</h1>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
                   Live Clinic ERP
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-[#7A7265] dark:text-slate-400 mt-0.5">
                 Dr. Shreya Nidhi's Dental Studio • Awadhpuri, Bhopal
               </p>
             </div>
@@ -446,7 +444,7 @@ export default function AdminPage() {
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
                 activeTab === "receptionist"
                   ? "bg-amber-500 text-slate-950 shadow-md scale-105"
-                  : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
               }`}
             >
               <Users className="w-3.5 h-3.5" />
@@ -458,7 +456,7 @@ export default function AdminPage() {
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
                 activeTab === "doctor"
                   ? "bg-amber-500 text-slate-950 shadow-md scale-105"
-                  : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
               }`}
             >
               <Stethoscope className="w-3.5 h-3.5" />
@@ -470,7 +468,7 @@ export default function AdminPage() {
                 setSelectedPatientForEdit(null);
                 setIsPatientModalOpen(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 text-xs font-bold transition"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>+ Add Walk-In Profile</span>
@@ -481,7 +479,7 @@ export default function AdminPage() {
                 setSelectedBookingForModal(bookings[0] || null);
                 setIsRxModalOpen(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-xs font-bold transition"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600/15 hover:bg-purple-600/25 text-purple-700 dark:text-purple-300 border border-purple-500/40 text-xs font-bold transition"
             >
               <FileText className="w-3.5 h-3.5" />
               <span>+ Issue E-Rx</span>
@@ -492,7 +490,7 @@ export default function AdminPage() {
                 setSelectedBookingForModal(bookings[0] || null);
                 setIsBillingModalOpen(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 text-xs font-bold transition"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-600/15 hover:bg-sky-600/25 text-sky-700 dark:text-sky-300 border border-sky-500/40 text-xs font-bold transition"
             >
               <Receipt className="w-3.5 h-3.5" />
               <span>+ POS Billing</span>
@@ -500,7 +498,7 @@ export default function AdminPage() {
 
             <button
               onClick={handleLogout}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 transition"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
@@ -509,7 +507,7 @@ export default function AdminPage() {
         </div>
 
         {/* ACTIVE PATIENT OPERATIONAL CONTEXT STRIP */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-amber-500/40 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="bg-white dark:bg-slate-900 border border-amber-500/40 rounded-2xl p-3.5 sm:p-4 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-sm shadow">
@@ -517,25 +515,25 @@ export default function AdminPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Active Patient in Context:</span>
-                  <span className="text-sm font-extrabold text-white">{activePatient?.name || "No Patient Selected"}</span>
+                  <span className="text-xs text-[#7A7265] dark:text-slate-400 font-bold uppercase tracking-wider">Active Patient in Context:</span>
+                  <span className="text-sm font-extrabold text-[#1C1A17] dark:text-white">{activePatient?.name || "No Patient Selected"}</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-300 mt-0.5">
+                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 mt-0.5">
                   <span>{activePatient?.age ? `${activePatient.age} yrs • ` : ""}{activePatient?.gender || "Male"}</span>
-                  <span className="font-mono text-amber-400 font-bold">🩸 {activePatient?.bloodGroup || "O+"}</span>
-                  <span className="text-slate-400">📞 {activePatient?.phone}</span>
+                  <span className="font-mono text-amber-600 dark:text-amber-400 font-bold">🩸 {activePatient?.bloodGroup || "O+"}</span>
+                  <span className="text-slate-500 dark:text-slate-400">📞 {activePatient?.phone}</span>
                 </div>
               </div>
             </div>
 
             {/* Medical Alerts Badges */}
             {activePatient?.allergies && activePatient.allergies !== "None" && (
-              <span className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center gap-1">
+              <span className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" /> Allergy: {activePatient.allergies}
               </span>
             )}
             {activePatient?.medicalHistory && activePatient.medicalHistory !== "None" && (
-              <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-semibold flex items-center gap-1">
+              <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/40 text-xs font-semibold flex items-center gap-1">
                 <HeartPulse className="w-3 h-3" /> {activePatient.medicalHistory}
               </span>
             )}
@@ -550,7 +548,7 @@ export default function AdminPage() {
                   const selected = patients.find((p) => p.id === e.target.value);
                   if (selected) setActivePatient(selected);
                 }}
-                className="bg-slate-950 border border-amber-500/40 rounded-xl px-3 py-1.5 text-xs text-amber-300 font-bold focus:outline-none focus:ring-1 focus:ring-amber-500 pr-8"
+                className="bg-slate-50 dark:bg-slate-950 border border-amber-500/40 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-amber-300 font-bold focus:outline-none focus:ring-1 focus:ring-amber-500 pr-8"
               >
                 <option value="" disabled>Choose Patient...</option>
                 {patients.map((p) => (
@@ -567,10 +565,10 @@ export default function AdminPage() {
                   setSelectedPatientForEdit(activePatient);
                   setIsPatientModalOpen(true);
                 }}
-                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
                 title="Edit Active Patient Profile"
               >
-                <Edit3 className="w-4 h-4 text-amber-400" />
+                <Edit3 className="w-4 h-4 text-amber-500" />
               </button>
             )}
           </div>
@@ -578,14 +576,14 @@ export default function AdminPage() {
 
         {/* Global Alert Notification Banner */}
         {followupSuccess && (
-          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center justify-between animate-in fade-in">
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center justify-between animate-in fade-in">
             <span>{followupSuccess}</span>
             <button onClick={() => setFollowupSuccess("")}>✕</button>
           </div>
         )}
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar border-b border-slate-800">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar border-b border-slate-200 dark:border-slate-800">
           {[
             { id: "receptionist", label: "Waiting Room & Queue", icon: Users, count: queue.filter((q) => q.status === "WAITING" || q.status === "IN_CHAIR").length },
             { id: "doctor", label: "Tooth Odontogram Chart", icon: Stethoscope },
@@ -609,14 +607,14 @@ export default function AdminPage() {
                 onClick={() => setActiveTab(tab.id as AdminTab)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
                   isActive
-                    ? "bg-slate-800 text-amber-400 border border-amber-500/30 shadow-lg"
-                    : "text-slate-400 hover:text-white hover:bg-slate-900"
+                    ? "bg-[#C9A227] text-slate-950 shadow-md font-extrabold"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
                 {typeof tab.count === "number" && (
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${isActive ? "bg-amber-500 text-slate-950" : "bg-slate-800 text-slate-400"}`}>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${isActive ? "bg-slate-950 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"}`}>
                     {tab.count}
                   </span>
                 )}

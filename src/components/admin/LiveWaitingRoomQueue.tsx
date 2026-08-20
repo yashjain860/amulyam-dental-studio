@@ -200,21 +200,21 @@ export default function LiveWaitingRoomQueue({
   return (
     <div className="space-y-4">
       {/* Top Banner with Express Walk-In Action */}
-      <div className="bg-slate-900/90 border border-slate-800 p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
             <Users className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-white leading-tight">
+              <h2 className="text-base sm:text-lg font-bold text-[#1C1A17] dark:text-white leading-tight">
                 Live Waiting Room &amp; Token Queue Kanban
               </h2>
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/20 text-[10px] font-bold">
                 5-Stage Flow
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-[#7A7265] dark:text-slate-400 mt-0.5">
               Real-time patient flow: Not Arrived ➔ Waiting ➔ Chair ➔ POS Billing ➔ Discharged
             </p>
           </div>
@@ -223,14 +223,14 @@ export default function LiveWaitingRoomQueue({
         <div className="flex items-center gap-2">
           <button
             onClick={onRefresh}
-            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
             title="Refresh Live Queue"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
           <button
             onClick={() => setIsWalkInModalOpen(true)}
-            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2"
+            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2"
           >
             <PlusCircle className="w-4 h-4" />
             <span>+ Express Walk-In Patient</span>
@@ -241,15 +241,15 @@ export default function LiveWaitingRoomQueue({
       {/* 5-COLUMN KANBAN BOARD */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5 items-start">
         {/* ================= COLUMN 0: NOT YET ARRIVED ================= */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 space-y-3 flex flex-col min-h-[500px]">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 space-y-3 flex flex-col min-h-[500px] shadow-sm">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-500" />
+              <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 0. Not Yet Arrived
               </h3>
             </div>
-            <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-xs font-mono font-bold">
+            <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-mono font-bold">
               {notArrivedBookings.length}
             </span>
           </div>

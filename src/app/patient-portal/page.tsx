@@ -34,6 +34,7 @@ import {
   SessionUser,
 } from "@/lib/auth";
 import MotionReveal from "@/components/ui/MotionReveal";
+import { PatientPortalSkeleton } from "@/components/ui/Skeleton";
 
 export default function PatientCarePassPage() {
   // Auth Modes: "LOGIN" | "REGISTER" | "REF_LOOKUP"
@@ -238,9 +239,8 @@ export default function PatientCarePassPage() {
 
   if (pageInitializing) {
     return (
-      <div className="py-24 text-center text-sm text-[#888] flex items-center justify-center gap-2">
-        <RefreshCw className="w-4 h-4 animate-spin text-[#C9A227]" />
-        <span>Verifying secure care session...</span>
+      <div className="py-12 md:py-20 min-h-[85vh] max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <PatientPortalSkeleton />
       </div>
     );
   }

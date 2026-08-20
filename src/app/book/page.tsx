@@ -3,6 +3,7 @@ import BookingWizard from "@/components/booking/BookingWizard";
 import { Sparkles, ShieldCheck, Clock, CheckCircle2 } from "lucide-react";
 import { CLINIC_INFO } from "@/lib/constants";
 import MotionReveal, { StaggerContainer, StaggerItem } from "@/components/ui/MotionReveal";
+import { BookingWizardSkeleton } from "@/components/ui/Skeleton";
 
 export const metadata = {
   title: "Book Dental Appointment Online | Amulyam Dental Studio",
@@ -32,13 +33,7 @@ export default function BookAppointmentPage() {
       {/* Booking Wizard Container with Suspense */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
         <MotionReveal direction="up" delay={0.15}>
-          <Suspense
-            fallback={
-              <div className="p-12 text-center text-sm text-[#888]">
-                Loading appointment scheduler...
-              </div>
-            }
-          >
+          <Suspense fallback={<BookingWizardSkeleton />}>
             <BookingWizard />
           </Suspense>
         </MotionReveal>

@@ -106,8 +106,10 @@ export default function Navbar() {
                 </kbd>
               </button>
 
-              {/* Theme Switcher (Hidden in Admin panel) */}
-              {!pathname?.startsWith("/admin") && <ThemeToggle />}              {/* Track Appointment / Care Pass */}
+              {/* Theme Switcher (Available everywhere including Admin) */}
+              <ThemeToggle />
+
+              {/* Track Appointment / Care Pass */}
               <Link
                 href="/patient-portal"
                 className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[#C9A227]/40 text-xs font-semibold text-[#1A1A1A] dark:text-white hover:bg-[#C9A227]/10 transition-all cursor-pointer"

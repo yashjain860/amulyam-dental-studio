@@ -1,19 +1,12 @@
-"use client";
-
-import React, { useEffect } from "react";
+import React from "react";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  useEffect(() => {
-    // Permanently enforce dark mode on Admin panel
-    document.documentElement.classList.add("dark");
-  }, []);
-
   return (
-    <div className="dark bg-[#0F0E0D] text-slate-100 min-h-screen">
+    <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#0F0E0D] text-[#1C1A17] dark:text-[#F8F6F2] transition-colors duration-200">
       {children}
     </div>
   );
