@@ -3,9 +3,6 @@ import path from "path";
 import crypto from "crypto";
 import { Booking, ContactInquiry, ClinicSlotOverride, ClinicStats, BookingStatus, UserAccount } from "./types";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DB_FILE = path.join(DATA_DIR, "amulyam_store.json");
-
 export function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password + "_amulyam_salt_2026").digest("hex");
 }
@@ -17,11 +14,32 @@ interface DatabaseSchema {
   slotOverrides: ClinicSlotOverride[];
 }
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+function getDbFilePath(): string {
+  // If running in Vercel or AWS Lambda serverless environment, /var/task is read-only.
+  // We must write to /tmp which is the only writable directory.
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === "production") {
+    const tmpDir = path.join("/tmp", "amulyam_data");
+    if (!fs.existsSync(tmpDir)) {
+      try {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      } catch (e) {}
+    }
+    return path.join(tmpDir, "amulyam_store.json");
   }
+
+  // Local development
+  const localDir = path.join(process.cwd(), "data");
+  if (!fs.existsSync(localDir)) {
+    try {
+      fs.mkdirSync(localDir, { recursive: true });
+    } catch (e) {}
+  }
+  return path.join(localDir, "amulyam_store.json");
 }
+
+let memoryCache: DatabaseSchema | null = null;
+
+
 
 function getInitialData(): DatabaseSchema {
   const today = new Date().toISOString().split("T")[0];
@@ -141,25 +159,61 @@ function getInitialData(): DatabaseSchema {
 }
 
 export function readDb(): DatabaseSchema {
-  ensureDataDir();
-  if (!fs.existsSync(DB_FILE)) {
-    const initial = getInitialData();
-    fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2), "utf-8");
-    return initial;
+  if (memoryCache) {
+    return memoryCache;
   }
+
+  const dbFile = getDbFilePath();
+  const bundledFile = path.join(process.cwd(), "data", "amulyam_store.json");
+
+  // 1. If writable store exists, read it
+  if (fs.existsSync(dbFile)) {
+    try {
+      const raw = fs.readFileSync(dbFile, "utf-8");
+      memoryCache = JSON.parse(raw);
+      return memoryCache!;
+    } catch (e) {}
+  }
+
+  // 2. If bundled file exists, seed from bundled file
+  if (fs.existsSync(bundledFile)) {
+    try {
+      const raw = fs.readFileSync(bundledFile, "utf-8");
+      const data: DatabaseSchema = JSON.parse(raw);
+      memoryCache = data;
+      // Persist to writable location
+      try {
+        const dir = path.dirname(dbFile);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(dbFile, JSON.stringify(data, null, 2), "utf-8");
+      } catch (err) {}
+      return data;
+    } catch (e) {}
+  }
+
+  // 3. Fallback to initial seed
+  const initial = getInitialData();
+  memoryCache = initial;
   try {
-    const raw = fs.readFileSync(DB_FILE, "utf-8");
-    return JSON.parse(raw);
-  } catch {
-    const initial = getInitialData();
-    fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2), "utf-8");
-    return initial;
-  }
+    const dir = path.dirname(dbFile);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(dbFile, JSON.stringify(initial, null, 2), "utf-8");
+  } catch (err) {}
+  return initial;
 }
 
 export function writeDb(data: DatabaseSchema): void {
-  ensureDataDir();
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+  memoryCache = data;
+  const dbFile = getDbFilePath();
+  try {
+    const dir = path.dirname(dbFile);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(dbFile, JSON.stringify(data, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Write DB error (falling back to memory):", err);
+  }
 }
 
 // Booking Operations
