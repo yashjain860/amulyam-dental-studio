@@ -70,7 +70,11 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
   const [appointmentDate, setAppointmentDate] = useState<string>(tomorrowStr);
   const [selectedSlot, setSelectedSlot] = useState<string>(TIME_SLOTS[1]); // e.g. 10:45 AM
 
-  // Patient Details
+  // Patient Details & Auth
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [accountPassword, setAccountPassword] = useState("");
+  const [createAccountChecked, setCreateAccountChecked] = useState(true);
+
   const [formData, setFormData] = useState({
     patientName: "",
     patientPhone: "",
@@ -80,6 +84,41 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
     notes: querySource === "cost-estimator" && queryTotal ? `Pre-estimated Package (Est. Total: ₹${queryTotal})` : "",
     preferredDoctor: LEAD_DOCTOR.name,
   });
+
+  // Check active user session to auto-fill
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const local = localStorage.getItem("amulyam_patient_session");
+        if (local) {
+          const u = JSON.parse(local);
+          setCurrentUser(u);
+          setFormData((prev) => ({
+            ...prev,
+            patientName: prev.patientName || u.name || "",
+            patientEmail: prev.patientEmail || u.email || "",
+            patientPhone: prev.patientPhone || u.phone || "",
+          }));
+          return;
+        }
+
+        const res = await fetch("/api/auth/session");
+        const data = await res.json();
+        if (data.patient) {
+          setCurrentUser(data.patient);
+          setFormData((prev) => ({
+            ...prev,
+            patientName: prev.patientName || data.patient.name || "",
+            patientEmail: prev.patientEmail || data.patient.email || "",
+            patientPhone: prev.patientPhone || data.patient.phone || "",
+          }));
+        }
+      } catch (e) {}
+    };
+
+    checkUser();
+  }, []);
+
 
   const selectedServices = CLINIC_SERVICES.filter((s) =>
     selectedServiceIds.includes(s.id)
@@ -190,6 +229,7 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
         appointmentDate,
         timeSlot: selectedSlot,
         notes: formData.notes,
+        password: accountPassword || undefined,
       };
 
       const res = await fetch("/api/bookings", {
@@ -202,6 +242,11 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Failed to create booking.");
       }
+
+      if (data.user) {
+        localStorage.setItem("amulyam_patient_session", JSON.stringify(data.user));
+      }
+
 
       // Confetti celebrate
       try {
@@ -440,17 +485,60 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
         </div>
       )}
 
-      {/* STEP 3: PATIENT INFORMATION */}
+      {/* STEP 3: PATIENT INFORMATION & AUTH */}
       {step === 3 && (
         <div>
           <div className="mb-6">
             <h2 className="text-2xl sm:text-3xl font-bold text-[#1A1A1A] dark:text-[#F8F6F2]">
-              Patient Contact Details
+              Patient Contact &amp; Care Details
             </h2>
             <p className="text-sm text-[#7A7265] dark:text-[#A39E93] mt-1">
               We will send your digital appointment pass and preparation guidelines to these details.
             </p>
           </div>
+
+          {/* User Session or Google One-Tap */}
+          {currentUser ? (
+            <div className="mb-6 p-4 rounded-2xl bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800/50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-600 text-white flex items-center justify-center font-bold text-sm">
+                  {currentUser.name ? currentUser.name.charAt(0) : "P"}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-green-900 dark:text-green-200">
+                      Booking with Verified Account: {currentUser.name}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-green-700 dark:text-green-400">
+                    {currentUser.email}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6 p-4 rounded-2xl bg-[#FAF8F5] dark:bg-[#1C1A17] border border-[#C9A227]/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-xs text-[#666] dark:text-[#AAA] text-center sm:text-left">
+                <span className="font-bold text-[#1A1A1A] dark:text-white block">Already have a Care Pass or Google Account?</span>
+                <span>Sign in for 1-click auto-fill and instant booking tracking.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = `/api/auth/google?role=patient&redirectUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+                }}
+                className="px-4 py-2 rounded-xl bg-white dark:bg-[#121110] border border-[#E5DFD5] dark:border-[#332F28] hover:bg-[#FAF8F5] text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer whitespace-nowrap"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
+                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.04 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
+                </svg>
+                <span>Continue with Google</span>
+              </button>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -523,6 +611,25 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
               </div>
             </div>
 
+            {!currentUser && (
+              <div className="p-4 bg-[#FAF8F5] dark:bg-[#1C1A17] rounded-2xl border border-[#E5DFD5] dark:border-[#332F28] space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#1A1A1A] dark:text-white flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#C9A227]" />
+                    <span>Create Secure Account Password (Recommended)</span>
+                  </label>
+                  <span className="text-[10px] text-[#C9A227] font-bold">Protects Your Booking Privacy</span>
+                </div>
+                <input
+                  type="password"
+                  placeholder="Create a password (min 6 characters) to manage visits & care pass"
+                  value={accountPassword}
+                  onChange={(e) => setAccountPassword(e.target.value)}
+                  className="w-full px-4 py-2 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-white dark:bg-[#121110] text-xs focus:outline-none focus:border-[#C9A227]"
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#A39E93] mb-1.5">
                 Dental Concerns / Notes (Optional)
@@ -538,6 +645,7 @@ export default function BookingWizard({ initialServiceId }: BookingWizardProps) 
           </div>
         </div>
       )}
+
 
       {/* STEP 4: REVIEW & CONFIRM */}
       {step === 4 && (

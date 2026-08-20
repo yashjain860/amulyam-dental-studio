@@ -5,8 +5,21 @@ export type BookingStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  passwordHash?: string;
+  role: "patient" | "admin";
+  authProvider: "local" | "google";
+  avatar?: string;
+  createdAt: string;
+}
+
 export interface Booking {
   id: string;
+  userId?: string;
   refNumber: string; // e.g. ADS-2026-8941
   patientName: string;
   patientPhone: string;
@@ -27,6 +40,7 @@ export interface Booking {
   createdAt: string;
   updatedAt: string;
 }
+
 
 export interface Service {
   id: string;

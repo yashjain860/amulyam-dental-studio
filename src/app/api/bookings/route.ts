@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllBookings, createBooking } from "@/lib/db";
+import { getAllBookings, createBooking, getBookingsForUser, createUser, getUserByEmail } from "@/lib/db";
+import { PATIENT_COOKIE_NAME, ADMIN_COOKIE_NAME, SessionUser } from "@/lib/auth";
 import {
   generatePatientConfirmationEmail,
   generateAdminNewBookingAlertEmail,
@@ -13,9 +14,63 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status") || undefined;
     const date = searchParams.get("date") || undefined;
     const search = searchParams.get("search") || undefined;
+    const ref = searchParams.get("ref");
+    const phone = searchParams.get("phone");
 
-    const bookings = getAllBookings({ status, date, search });
-    return NextResponse.json({ success: true, bookings });
+    // Check sessions
+    const adminCookie = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+    const patientCookie = req.cookies.get(PATIENT_COOKIE_NAME)?.value;
+
+    let isAdmin = false;
+    let patientUser: SessionUser | null = null;
+
+    if (adminCookie) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(adminCookie));
+        if (parsed.role === "admin") isAdmin = true;
+      } catch (e) {}
+    }
+
+    if (patientCookie) {
+      try {
+        patientUser = JSON.parse(decodeURIComponent(patientCookie));
+      } catch (e) {}
+    }
+
+    // 1. Admin gets access to all clinic bookings with filters
+    if (isAdmin) {
+      const bookings = getAllBookings({ status, date, search });
+      return NextResponse.json({ success: true, bookings });
+    }
+
+    // 2. Authenticated Patient gets ONLY their own bookings
+    if (patientUser) {
+      const userBookings = getBookingsForUser(
+        patientUser.email,
+        patientUser.phone,
+        patientUser.id
+      );
+      return NextResponse.json({ success: true, bookings: userBookings });
+    }
+
+    // 3. Strict Public Lookup: Requires Ref Number AND Phone combination
+    if (ref && phone) {
+      const all = getAllBookings();
+      const cleanPhone = phone.replace(/\D/g, "");
+      const match = all.find(
+        (b) =>
+          b.refNumber.toUpperCase() === ref.trim().toUpperCase() &&
+          b.patientPhone.replace(/\D/g, "").includes(cleanPhone)
+      );
+
+      return NextResponse.json({
+        success: true,
+        bookings: match ? [match] : [],
+      });
+    }
+
+    // 4. Unauthenticated without secret ref + phone -> return empty to protect privacy
+    return NextResponse.json({ success: true, bookings: [] });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -38,6 +93,7 @@ export async function POST(req: NextRequest) {
       appointmentDate,
       timeSlot,
       notes,
+      password, // Optional user registration password
     } = body;
 
     if (!patientName || !patientPhone || !patientEmail || !serviceName || !appointmentDate || !timeSlot) {
@@ -47,7 +103,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 1. Find or create user account
+    let user = getUserByEmail(patientEmail);
+    if (!user) {
+      user = createUser({
+        name: patientName,
+        email: patientEmail,
+        phone: patientPhone,
+        password: password || undefined,
+        role: "patient",
+        authProvider: "local",
+      });
+    } else if (password && !user.passwordHash) {
+      // If user had a placeholder account and now set a password
+      user = createUser({
+        name: patientName,
+        email: patientEmail,
+        phone: patientPhone,
+        password: password,
+      });
+    }
+
+    // 2. Create booking bound to user ID
     const newBooking = createBooking({
+      userId: user.id,
       patientName,
       patientPhone,
       patientEmail,
@@ -62,10 +141,10 @@ export async function POST(req: NextRequest) {
       notes: notes || "",
     });
 
-    // Asynchronously dispatch emails without blocking response
+    // 3. Asynchronously dispatch emails without blocking response
     (async () => {
       try {
-        // 1. Patient Confirmation
+        // Patient Confirmation
         const patientEmailData = generatePatientConfirmationEmail(newBooking);
         await sendEmailNotification({
           to: newBooking.patientEmail,
@@ -73,7 +152,7 @@ export async function POST(req: NextRequest) {
           html: patientEmailData.html,
         });
 
-        // 2. Admin Alert
+        // Admin Alert
         const adminEmailData = generateAdminNewBookingAlertEmail(newBooking);
         await sendEmailNotification({
           to: process.env.ADMIN_ALERT_EMAIL || CLINIC_INFO.email,
@@ -85,7 +164,25 @@ export async function POST(req: NextRequest) {
       }
     })();
 
-    return NextResponse.json({ success: true, booking: newBooking }, { status: 201 });
+    // 4. Return booking + automatic session cookie
+    const sessionUser: SessionUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: "patient",
+    };
+
+    const response = NextResponse.json({ success: true, booking: newBooking, user: sessionUser }, { status: 201 });
+    response.cookies.set({
+      name: PATIENT_COOKIE_NAME,
+      value: encodeURIComponent(JSON.stringify(sessionUser)),
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      sameSite: "lax",
+    });
+
+    return response;
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

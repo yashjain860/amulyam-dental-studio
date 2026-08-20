@@ -16,6 +16,10 @@ import {
   LogOut,
   ShieldCheck,
   RefreshCw,
+  Lock,
+  Mail,
+  KeyRound,
+  FileText,
 } from "lucide-react";
 import { Booking } from "@/lib/types";
 import { CLINIC_INFO } from "@/lib/constants";
@@ -29,13 +33,29 @@ import {
 import MotionReveal from "@/components/ui/MotionReveal";
 
 export default function PatientCarePassPage() {
-  const [identifier, setIdentifier] = useState("");
+  // Auth Modes: "LOGIN" | "REGISTER" | "REF_LOOKUP"
+  const [authMode, setAuthMode] = useState<"LOGIN" | "REGISTER" | "REF_LOOKUP">("LOGIN");
+
+  // Form states
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPhone, setRegPhone] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+
+  const [lookupRef, setLookupRef] = useState("");
+  const [lookupPhone, setLookupPhone] = useState("");
+
+  // Session & Data
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
   const [pageInitializing, setPageInitializing] = useState(true);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
   // Check existing session on page mount
   const checkSession = async () => {
@@ -57,7 +77,7 @@ export default function PatientCarePassPage() {
       if (activePatient) {
         setCurrentUser(activePatient);
         setIsLoggedIn(true);
-        await loadBookingsForUser(activePatient.email, activePatient.phone || "", activePatient.name);
+        await loadBookings();
       }
     } catch (e) {
       console.error("Session check error:", e);
@@ -70,29 +90,14 @@ export default function PatientCarePassPage() {
     checkSession();
   }, []);
 
-  const loadBookingsForUser = async (email: string, phone: string, name: string) => {
+  const loadBookings = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/bookings");
       const data = await res.json();
-      if (!data.success) throw new Error("Failed to retrieve bookings");
-
-      const e = (email || "").toLowerCase();
-      const p = (phone || "").replace(/\D/g, "");
-      const n = (name || "").toLowerCase();
-
-      const matches = data.bookings.filter((b: Booking) => {
-        const bPhone = (b.patientPhone || "").replace(/\D/g, "");
-        const bEmail = (b.patientEmail || "").toLowerCase();
-        const bName = (b.patientName || "").toLowerCase();
-        return (
-          (e && bEmail === e) ||
-          (p && bPhone.includes(p)) ||
-          (n && bName.includes(n))
-        );
-      });
-
-      setUserBookings(matches.length > 0 ? matches : data.bookings.slice(0, 2));
+      if (data.success) {
+        setUserBookings(data.bookings);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -100,53 +105,109 @@ export default function PatientCarePassPage() {
     }
   };
 
-  const handleLookup = async (e: React.FormEvent) => {
+  // 1. Handle Email & Password Login
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!identifier.trim()) {
-      setError("Please enter your registered phone number, email, or Booking Reference ID.");
-      return;
-    }
-    setLoading(true);
     setError("");
+    setLoading(true);
 
     try {
-      const res = await fetch("/api/bookings");
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      });
+
       const data = await res.json();
-      if (!data.success) throw new Error("Unable to retrieve booking records at this time.");
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Invalid credentials.");
+      }
 
-      const q = identifier.trim().toLowerCase();
-      const matches = data.bookings.filter(
-        (b: Booking) =>
-          b.patientPhone.includes(q) ||
-          b.patientEmail.toLowerCase() === q ||
-          b.refNumber.toLowerCase() === q ||
-          b.patientName.toLowerCase().includes(q)
+      setCurrentUser(data.user);
+      setIsLoggedIn(true);
+      localStorage.setItem("amulyam_patient_session", JSON.stringify(data.user));
+      setClientCookie(PATIENT_COOKIE_NAME, JSON.stringify(data.user), 30);
+      await loadBookings();
+    } catch (err: any) {
+      setError(err.message || "Failed to sign in.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 2. Handle Patient Registration
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: regName,
+          email: regEmail,
+          phone: regPhone,
+          password: regPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to create account.");
+      }
+
+      setCurrentUser(data.user);
+      setIsLoggedIn(true);
+      localStorage.setItem("amulyam_patient_session", JSON.stringify(data.user));
+      setClientCookie(PATIENT_COOKIE_NAME, JSON.stringify(data.user), 30);
+      await loadBookings();
+    } catch (err: any) {
+      setError(err.message || "Failed to register.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. Handle Secure Reference + Phone Lookup
+  const handleRefLookup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!lookupRef.trim() || !lookupPhone.trim()) {
+      setError("Please provide both your Booking Reference Number and registered phone number.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `/api/bookings?ref=${encodeURIComponent(lookupRef.trim())}&phone=${encodeURIComponent(lookupPhone.trim())}`
       );
+      const data = await res.json();
 
-      if (matches.length === 0) {
+      if (!data.success || data.bookings.length === 0) {
         setError(
-          "We couldn't locate any appointment matching that information. Please verify your reference number or registered mobile number."
+          "No matching appointment found. Please ensure both the Booking Reference ID (e.g. ADS-2026-...) and registered mobile number match."
         );
-        setLoading(false);
         return;
       }
 
-      const patientData: SessionUser = {
-        name: matches[0].patientName,
-        email: matches[0].patientEmail,
-        phone: matches[0].patientPhone,
+      const match = data.bookings[0];
+      const guestSession: SessionUser = {
+        name: match.patientName,
+        email: match.patientEmail,
+        phone: match.patientPhone,
         role: "patient",
       };
 
-      setUserBookings(matches);
-      setCurrentUser(patientData);
+      setUserBookings([match]);
+      setCurrentUser(guestSession);
       setIsLoggedIn(true);
-
-      // Persist session across future visits
-      setClientCookie(PATIENT_COOKIE_NAME, JSON.stringify(patientData), 30);
-      localStorage.setItem("amulyam_patient_session", JSON.stringify(patientData));
+      localStorage.setItem("amulyam_patient_session", JSON.stringify(guestSession));
+      setClientCookie(PATIENT_COOKIE_NAME, JSON.stringify(guestSession), 7);
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred. Please try again.");
+      setError(err.message || "Unable to lookup appointment.");
     } finally {
       setLoading(false);
     }
@@ -170,35 +231,80 @@ export default function PatientCarePassPage() {
     setIsLoggedIn(false);
     setCurrentUser(null);
     setUserBookings([]);
-    setIdentifier("");
   };
 
   if (pageInitializing) {
     return (
       <div className="py-24 text-center text-sm text-[#888] flex items-center justify-center gap-2">
         <RefreshCw className="w-4 h-4 animate-spin text-[#C9A227]" />
-        <span>Verifying care access credentials...</span>
+        <span>Verifying secure care session...</span>
       </div>
     );
   }
 
   return (
-    <div className="py-12 md:py-20 min-h-[80vh] relative">
+    <div className="py-12 md:py-20 min-h-[85vh] relative">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {!isLoggedIn ? (
-          /* APPOINTMENT LOOKUP & ACCESS CARD */
+          /* AUTHENTICATION & ACCESS SUITE */
           <MotionReveal direction="up">
             <div className="max-w-lg mx-auto bg-white dark:bg-[#181715] rounded-3xl border-2 border-[#C9A227]/30 shadow-2xl p-6 sm:p-10 space-y-6">
               <div className="text-center space-y-2">
-                <div className="w-14 h-14 rounded-2xl bg-[#C9A227]/15 text-[#C9A227] flex items-center justify-center mx-auto mb-3">
+                <div className="w-14 h-14 rounded-2xl bg-[#C9A227]/15 text-[#C9A227] flex items-center justify-center mx-auto mb-2">
                   <ShieldCheck className="w-7 h-7" />
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1A1A1A] dark:text-white">
-                  Track Your Dental Visit
+                  Patient Care Portal
                 </h1>
-                <p className="text-xs sm:text-sm text-[#6B6B6B] dark:text-[#A8A29E] leading-relaxed">
-                  Access your digital care pass, view real-time doctor confirmation, review clinical prescriptions, and manage your upcoming schedule.
+                <p className="text-xs sm:text-sm text-[#6B6B6B] dark:text-[#A8A29E]">
+                  Secure authenticated access to your clinical records, digital care pass, and appointments.
                 </p>
+              </div>
+
+              {/* Mode Toggle Tabs */}
+              <div className="grid grid-cols-3 gap-1 p-1 bg-[#FAF8F5] dark:bg-[#121110] rounded-2xl border border-[#E5DFD5] dark:border-[#332F28] text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode("LOGIN");
+                    setError("");
+                  }}
+                  className={`py-2 rounded-xl transition-all cursor-pointer ${
+                    authMode === "LOGIN"
+                      ? "bg-[#C9A227] text-white shadow"
+                      : "text-[#777] hover:text-[#C9A227]"
+                  }`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode("REGISTER");
+                    setError("");
+                  }}
+                  className={`py-2 rounded-xl transition-all cursor-pointer ${
+                    authMode === "REGISTER"
+                      ? "bg-[#C9A227] text-white shadow"
+                      : "text-[#777] hover:text-[#C9A227]"
+                  }`}
+                >
+                  Register
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode("REF_LOOKUP");
+                    setError("");
+                  }}
+                  className={`py-2 rounded-xl transition-all cursor-pointer ${
+                    authMode === "REF_LOOKUP"
+                      ? "bg-[#C9A227] text-white shadow"
+                      : "text-[#777] hover:text-[#C9A227]"
+                  }`}
+                >
+                  Ref ID
+                </button>
               </div>
 
               {error && (
@@ -208,7 +314,7 @@ export default function PatientCarePassPage() {
                 </div>
               )}
 
-              {/* Real Google OAuth Button */}
+              {/* 1-Click Google OAuth */}
               <button
                 type="button"
                 onClick={handleGoogleLogin}
@@ -238,52 +344,193 @@ export default function PatientCarePassPage() {
               <div className="relative flex py-1 items-center">
                 <div className="flex-grow border-t border-[#E8E0D2] dark:border-[#332F28]" />
                 <span className="flex-shrink mx-4 text-[11px] text-[#888] uppercase tracking-wider font-semibold">
-                  Or Lookup by Details
+                  Or use email &amp; password
                 </span>
                 <div className="flex-grow border-t border-[#E8E0D2] dark:border-[#332F28]" />
               </div>
 
-              {/* Secure Details Lookup */}
-              <form onSubmit={handleLookup} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#A39E93] mb-1.5">
-                    Registered Mobile Number, Email, or Reference ID
-                  </label>
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-[#888] absolute left-3.5 top-3.5" />
+              {/* 1. SIGN IN FORM */}
+              {authMode === "LOGIN" && (
+                <form onSubmit={handleEmailLogin} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#A39E93] mb-1.5">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-[#888] absolute left-3.5 top-3.5" />
+                      <input
+                        type="email"
+                        required
+                        placeholder="you@example.com"
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#A39E93] mb-1.5">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <KeyRound className="w-4 h-4 text-[#888] absolute left-3.5 top-3.5" />
+                      <input
+                        type="password"
+                        required
+                        placeholder="••••••••"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-2xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-sm shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {loading ? "Signing In..." : "Sign In to Care Portal"}
+                  </button>
+                </form>
+              )}
+
+              {/* 2. REGISTER FORM */}
+              {authMode === "REGISTER" && (
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#A39E93] mb-1.5">
+                      Full Name *
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-[#888] absolute left-3.5 top-3.5" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Rahul Sharma"
+                        value={regName}
+                        onChange={(e) => setRegName(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#A39E93] mb-1.5">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="you@example.com"
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#A39E93] mb-1.5">
+                        Mobile Number *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="+91 98XXX XXXXX"
+                        value={regPhone}
+                        onChange={(e) => setRegPhone(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#A39E93] mb-1.5">
+                      Create Password (min 6 characters) *
+                    </label>
                     <input
-                      type="text"
+                      type="password"
                       required
-                      placeholder="e.g. +91 92036 04211 or ADS-2026-..."
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-2xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227] transition-all"
+                      minLength={6}
+                      placeholder="••••••••"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
                     />
                   </div>
-                </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-2xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-sm shadow-lg transition-all disabled:opacity-50 cursor-pointer"
-                >
-                  {loading ? "Verifying Details..." : "Find My Appointment"}
-                </button>
-              </form>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-2xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-sm shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {loading ? "Creating Account..." : "Create Free Patient Account"}
+                  </button>
+                </form>
+              )}
+
+              {/* 3. DUAL-FACTOR REF ID & PHONE LOOKUP */}
+              {authMode === "REF_LOOKUP" && (
+                <form onSubmit={handleRefLookup} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#A39E93] mb-1.5">
+                      Booking Reference Number *
+                    </label>
+                    <div className="relative">
+                      <FileText className="w-4 h-4 text-[#888] absolute left-3.5 top-3.5" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. ADS-2026-8941"
+                        value={lookupRef}
+                        onChange={(e) => setLookupRef(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#A39E93] mb-1.5">
+                      Registered Mobile Number (For Verification) *
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-[#888] absolute left-3.5 top-3.5" />
+                      <input
+                        type="tel"
+                        required
+                        placeholder="+91 98XXX XXXXX"
+                        value={lookupPhone}
+                        onChange={(e) => setLookupPhone(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DFD5] dark:border-[#332F28] bg-[#FAF8F5] dark:bg-[#121110] text-sm focus:outline-none focus:border-[#C9A227]"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-2xl bg-[#C9A227] hover:bg-[#DDB83C] text-black font-bold text-sm shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {loading ? "Verifying..." : "Verify & Access Care Pass"}
+                  </button>
+                </form>
+              )}
 
               <div className="text-center pt-2">
                 <Link
                   href="/book"
                   className="text-xs font-semibold text-[#C9A227] hover:underline inline-flex items-center gap-1"
                 >
-                  <span>Need a new dental consultation? Book Appointment</span>
+                  <span>Need a new dental appointment? Book Online</span>
                   <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
             </div>
           </MotionReveal>
         ) : (
-          /* ACTIVE PATIENT CARE DASHBOARD */
+          /* ACTIVE AUTHENTICATED PATIENT CARE DASHBOARD */
           <div className="space-y-6 animate-fadeIn">
             {/* Header User Profile Bar */}
             <div className="bg-white dark:bg-[#181715] p-6 sm:p-8 rounded-3xl border border-[#C9A227]/30 shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -297,7 +544,7 @@ export default function PatientCarePassPage() {
                       {currentUser?.name}
                     </h1>
                     <span className="text-[10px] font-bold bg-green-500/15 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">
-                      Verified Patient
+                      Verified Patient Account
                     </span>
                   </div>
                   <p className="text-xs text-[#888] mt-0.5">
@@ -333,13 +580,13 @@ export default function PatientCarePassPage() {
               </h2>
 
               {userBookings.length === 0 ? (
-                <div className="p-8 text-center bg-white dark:bg-[#181715] rounded-3xl border border-[#C9A227]/20">
+                <div className="p-8 text-center bg-white dark:bg-[#181715] rounded-3xl border border-[#C9A227]/20 space-y-3">
                   <p className="text-sm text-[#888]">No appointments found for this account.</p>
                   <Link
                     href="/book"
-                    className="mt-3 inline-block bg-[#C9A227] text-white text-xs font-bold px-4 py-2 rounded-xl"
+                    className="inline-block bg-[#C9A227] hover:bg-[#DDB83C] text-black text-xs font-bold px-5 py-2.5 rounded-xl shadow transition-all"
                   >
-                    Book Your First Appointment →
+                    Schedule Your First Appointment →
                   </Link>
                 </div>
               ) : (

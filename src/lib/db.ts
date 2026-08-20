@@ -1,11 +1,17 @@
 import fs from "fs";
 import path from "path";
-import { Booking, ContactInquiry, ClinicSlotOverride, ClinicStats, BookingStatus } from "./types";
+import crypto from "crypto";
+import { Booking, ContactInquiry, ClinicSlotOverride, ClinicStats, BookingStatus, UserAccount } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_FILE = path.join(DATA_DIR, "amulyam_store.json");
 
+export function hashPassword(password: string): string {
+  return crypto.createHash("sha256").update(password + "_amulyam_salt_2026").digest("hex");
+}
+
 interface DatabaseSchema {
+  users: UserAccount[];
   bookings: Booking[];
   inquiries: ContactInquiry[];
   slotOverrides: ClinicSlotOverride[];
@@ -22,6 +28,19 @@ function getInitialData(): DatabaseSchema {
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
   return {
+    users: [
+      {
+        id: "user-admin",
+        name: "Dr. Shreya Nidhi",
+        email: "amulyamdentalstudio@gmail.com",
+        phone: "+91 92036 04211",
+        passwordHash: hashPassword("1234"),
+        role: "admin",
+        authProvider: "local",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+
     bookings: [
       {
         id: "book-101",
@@ -274,3 +293,99 @@ export function getStats(): ClinicStats {
     totalInquiries: db.inquiries.length,
   };
 }
+
+// User Account Operations
+export function getUserByEmail(email: string): UserAccount | null {
+  const db = readDb();
+  const e = email.trim().toLowerCase();
+  return (db.users || []).find((u) => u.email.toLowerCase() === e) || null;
+}
+
+export function getUserById(id: string): UserAccount | null {
+  const db = readDb();
+  return (db.users || []).find((u) => u.id === id) || null;
+}
+
+export function createUser(input: {
+  name: string;
+  email: string;
+  phone?: string;
+  password?: string;
+  role?: "patient" | "admin";
+  authProvider?: "local" | "google";
+  avatar?: string;
+}): UserAccount {
+  const db = readDb();
+  if (!db.users) db.users = [];
+
+  const existing = getUserByEmail(input.email);
+  if (existing) {
+    // If user already exists, update phone/name if provided
+    const idx = db.users.findIndex((u) => u.id === existing.id);
+    if (idx >= 0) {
+      db.users[idx] = {
+        ...db.users[idx],
+        name: input.name || db.users[idx].name,
+        phone: input.phone || db.users[idx].phone,
+        avatar: input.avatar || db.users[idx].avatar,
+      };
+      writeDb(db);
+      return db.users[idx];
+    }
+  }
+
+  const newUser: UserAccount = {
+    id: `usr-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    name: input.name,
+    email: input.email.toLowerCase().trim(),
+    phone: input.phone || "",
+    passwordHash: input.password ? hashPassword(input.password) : undefined,
+    role: input.role || "patient",
+    authProvider: input.authProvider || "local",
+    avatar: input.avatar || "",
+    createdAt: new Date().toISOString(),
+  };
+
+  db.users.push(newUser);
+  writeDb(db);
+  return newUser;
+}
+
+export function validateUserCredentials(email: string, password: string): UserAccount | null {
+  const user = getUserByEmail(email);
+  if (!user || !user.passwordHash) return null;
+  const hash = hashPassword(password);
+  if (user.passwordHash === hash) {
+    return user;
+  }
+  return null;
+}
+
+export function findOrCreateGoogleUser(gUser: { name: string; email: string; avatar?: string }): UserAccount {
+  const existing = getUserByEmail(gUser.email);
+  if (existing) {
+    return existing;
+  }
+  return createUser({
+    name: gUser.name,
+    email: gUser.email,
+    authProvider: "google",
+    avatar: gUser.avatar,
+    role: gUser.email.toLowerCase() === "amulyamdentalstudio@gmail.com" ? "admin" : "patient",
+  });
+}
+
+// User-isolated bookings query (Strict Privacy)
+export function getBookingsForUser(email: string, phone?: string, userId?: string): Booking[] {
+  const db = readDb();
+  const e = (email || "").toLowerCase().trim();
+  const p = (phone || "").replace(/\D/g, "");
+
+  return (db.bookings || []).filter((b) => {
+    if (userId && b.userId === userId) return true;
+    if (e && b.patientEmail.toLowerCase().trim() === e) return true;
+    if (p && p.length >= 10 && b.patientPhone.replace(/\D/g, "").includes(p)) return true;
+    return false;
+  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
